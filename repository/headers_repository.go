@@ -13,8 +13,8 @@ const (
 	UPDATE_HEADER        = `update headers set where id = $1`
 	DELETE_HEADER        = `delete from headers where id = $1`
 	GET_HEADER           = `select * from headers where id = $1`
-	GET_REQUEST_HEADERS  = `select * from headers where request_headers_task_id = $1 limit $2 offset $3`
-	GET_RESPONSE_HEADERS = `select * from headers where response_headers_task_id = $1 limit $2 offset $3`
+	GET_REQUEST_HEADERS  = `select * from headers where request_headers_task_id = $1`
+	GET_RESPONSE_HEADERS = `select * from headers where response_headers_task_id = $1`
 )
 
 type HeaderRepository struct {
@@ -57,7 +57,7 @@ func (h HeaderRepository) GetRequestHeaders(tx *sql.Tx, taskId string) (*[]domai
 		return nil, err
 	}
 	header.Id = uid.String()
-	_, err = tx.Exec(GET_REQUEST_HEADERS, header.Id, header.Name, header.RequestTaskId, header.ResponsetTaskId, header.Value)
+	_, err = tx.Exec(GET_REQUEST_HEADERS, taskId)
 	if err != nil {
 		log.Println("an error occurred while executing insert statement : ", err.Error())
 		return nil, err
@@ -72,7 +72,7 @@ func (h HeaderRepository) GetResponseHeaders(tx *sql.Tx, taskId string) (*[]doma
 		return nil, err
 	}
 	header.Id = uid.String()
-	_, err = tx.Exec(GET_RESPONSE_HEADERS, header.Id, header.Name, header.RequestTaskId, header.ResponsetTaskId, header.Value)
+	_, err = tx.Exec(GET_RESPONSE_HEADERS, taskId)
 	if err != nil {
 		log.Println("an error occurred while executing insert statement : ", err.Error())
 		return nil, err

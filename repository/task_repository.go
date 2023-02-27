@@ -59,13 +59,7 @@ func (t TaskRepository) Update(tx *sql.Tx, task *domain.Task) (*domain.Task, err
 }
 
 func (t TaskRepository) FindAll(tx *sql.Tx, page, size int) (*[]domain.Task, error) {
-	uid, err := uuid.NewUUID()
-	if err != nil {
-		log.Println("an error occurred while generating uuid : ", err.Error())
-		return nil, err
-	}
-	header.Id = uid.String()
-	_, err = tx.Exec(GET_TASKS, header.Id, header.Name, header.RequestTaskId, header.ResponsetTaskId, header.Value)
+	_, err := tx.Exec(GET_TASKS, header.Id, header.Name, header.RequestTaskId, header.ResponsetTaskId, header.Value)
 	if err != nil {
 		log.Println("an error occurred while executing insert statement : ", err.Error())
 		return nil, err

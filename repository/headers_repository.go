@@ -51,13 +51,7 @@ func (h HeaderRepository) Update(tx *sql.Tx, header *domain.Header) (*domain.Hea
 }
 
 func (h HeaderRepository) GetRequestHeaders(tx *sql.Tx, taskId string) (*[]domain.Header, error) {
-	uid, err := uuid.NewUUID()
-	if err != nil {
-		log.Println("an error occurred while generating uuid : ", err.Error())
-		return nil, err
-	}
-	header.Id = uid.String()
-	_, err = tx.Exec(GET_REQUEST_HEADERS, taskId)
+	_, err := tx.Exec(GET_REQUEST_HEADERS, taskId)
 	if err != nil {
 		log.Println("an error occurred while executing insert statement : ", err.Error())
 		return nil, err
@@ -66,13 +60,7 @@ func (h HeaderRepository) GetRequestHeaders(tx *sql.Tx, taskId string) (*[]domai
 }
 
 func (h HeaderRepository) GetResponseHeaders(tx *sql.Tx, taskId string) (*[]domain.Header, error) {
-	uid, err := uuid.NewUUID()
-	if err != nil {
-		log.Println("an error occurred while generating uuid : ", err.Error())
-		return nil, err
-	}
-	header.Id = uid.String()
-	_, err = tx.Exec(GET_RESPONSE_HEADERS, taskId)
+	_, err := tx.Exec(GET_RESPONSE_HEADERS, taskId)
 	if err != nil {
 		log.Println("an error occurred while executing insert statement : ", err.Error())
 		return nil, err

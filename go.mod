@@ -27,6 +27,7 @@ require (
 )
 
 require (
+	github.com/gocql/gocql v1.3.1
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/go-github/v39 v39.2.0 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
@@ -37,4 +38,10 @@ require (
 	go.uber.org/atomic v1.7.0 // indirect
 	golang.org/x/oauth2 v0.0.0-20211104180415-d3ed0bb246c8 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
+)
+
+require (
+	github.com/golang/snappy v0.0.4 // indirect
+	github.com/hailocab/go-hostpool v0.0.0-20160125115350-e80d13ce29ed // indirect
+	gopkg.in/inf.v0 v0.9.1 // indirect
 )

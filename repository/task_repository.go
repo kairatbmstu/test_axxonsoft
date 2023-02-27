@@ -20,13 +20,7 @@ type TaskRepository struct {
 }
 
 func (t TaskRepository) GetById(tx *sql.Tx, id string) (*domain.Task, error) {
-	uid, err := uuid.NewUUID()
-	if err != nil {
-		log.Println("an error occurred while generating uuid : ", err.Error())
-		return nil, err
-	}
-	header.Id = uid.String()
-	_, err = tx.Exec(insertHeaderStmt, header.Id, header.Name, header.RequestTaskId, header.ResponsetTaskId, header.Value)
+	_, err = tx.Exec(GET_TASK, id)
 	if err != nil {
 		log.Println("an error occurred while executing insert statement : ", err.Error())
 		return nil, err
@@ -40,7 +34,7 @@ func (t TaskRepository) Save(tx *sql.Tx, task *domain.Task) (*domain.Task, error
 		log.Println("an error occurred while generating uuid : ", err.Error())
 		return nil, err
 	}
-	header.Id = uid.String()
+	task.Id = uid.String()
 	_, err = tx.Exec(INSERT_TASK, header.Id, header.Name, header.RequestTaskId, header.ResponsetTaskId, header.Value)
 	if err != nil {
 		log.Println("an error occurred while executing insert statement : ", err.Error())

@@ -33,17 +33,26 @@ func (t TaskService) GetById(id string) (*dto.TaskDTO, error) {
 	}
 
 	requestHeaders, err := t.HeaderRepository.GetRequestHeaders(tx, id)
-
 	if err != nil {
-		log.Println("error calling taskRepository.getById() method: ", err)
+		log.Println("error calling taskRepository.GetRequestHeaders() method: ", err)
 		err := tx.Rollback()
 		if err != nil {
 			log.Println("error while rolling back transaction in taskRepository.getById() method : ", err)
 		}
 		return nil, err
 	}
-
 	task.RequestHeaders = *requestHeaders
+
+	responseHeaders, err := t.HeaderRepository.GetResponseHeaders(tx, id)
+	if err != nil {
+		log.Println("error calling taskRepository.GetResponseHeaders() method: ", err)
+		err := tx.Rollback()
+		if err != nil {
+			log.Println("error while rolling back transaction in taskRepository.getById() method : ", err)
+		}
+		return nil, err
+	}
+	task.ResponseHeaders = *responseHeaders
 
 	err = tx.Commit()
 	if err != nil {
@@ -73,6 +82,10 @@ func (c TaskService) Create(taskDTO dto.TaskDTO) (*dto.TaskDTO, error) {
 			log.Println("error while rolling back transaction in taskRepository.getById() method : ", err)
 		}
 		return nil, err
+	}
+
+	for _, header := range task.RequestHeaders {
+		c.HeaderRepository.Create(tx, &header)
 	}
 
 	err = tx.Commit()
@@ -182,6 +195,14 @@ func (tm TaskMapper) MapToEntity(taskDTO dto.TaskDTO) domain.Task {
 		ResponseLength: taskDTO.ResponseLength,
 		TaskStatus:     taskDTO.TaskStatus,
 		Url:            taskDTO.Url,
+	}
+
+	for _, headerDto := range taskDTO.RequestHeaders {
+		var header = domain.Header{
+			Name:  headerDto.Name,
+			Value: headerDto.Value,
+		}
+		task.RequestHeaders = append(task.RequestHeaders, header)
 	}
 
 	for _, headerDto := range taskDTO.ResponseHeaders {

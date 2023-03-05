@@ -1,5 +1,7 @@
 package domain
 
+import "database/sql"
+
 type Task struct {
 	Id              string
 	Method          string
@@ -15,8 +17,8 @@ type Task struct {
 
 type Header struct {
 	Id              string
-	RequestTaskId   *string
-	ResponsetTaskId *string
+	RequestTaskId   sql.NullString
+	ResponsetTaskId sql.NullString
 	Name            string
 	Value           string
 }
@@ -24,8 +26,8 @@ type Header struct {
 type TaskStatus string
 
 const (
-	NEW        TaskStatus = "new"
-	IN_PROCESS TaskStatus = "in_process"
-	DONE       TaskStatus = "done"
-	ERROR      TaskStatus = "error"
+	TaskStatus_NEW        TaskStatus = "new"
+	TaskStatus_IN_PROCESS TaskStatus = "in_process"
+	TaskStatus_DONE       TaskStatus = "done"
+	TaskStatus_ERROR      TaskStatus = "error"
 )

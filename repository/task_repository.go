@@ -25,7 +25,7 @@ func (t TaskRepository) GetById(tx *sql.Tx, id string) (*domain.Task, error) {
 	}
 
 	task := new(domain.Task)
-	for rows.Next() {
+	if rows.Next() {
 
 		err = rows.Scan(&task.Id, &task.Method, &task.Url,
 			&task.HttpStatusCode, &task.TaskStatus, &task.ResponseLength)

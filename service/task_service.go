@@ -2,12 +2,15 @@ package service
 
 import (
 	"log"
+	"strings"
 
 	"example.com/test_axxonsoft/v2/database"
 	"example.com/test_axxonsoft/v2/domain"
 	"example.com/test_axxonsoft/v2/dto"
 	"example.com/test_axxonsoft/v2/repository"
 )
+
+var TaskServiceInst = TaskService{}
 
 type TaskService struct {
 	TaskRepository   repository.TaskRepository
@@ -16,6 +19,7 @@ type TaskService struct {
 }
 
 func (t TaskService) GetById(id string) (*dto.TaskDTO, error) {
+
 	tx, err := database.DB.Begin()
 	if err != nil {
 		log.Println("error while opening transaction taskRepository.getById() method: ", err)
@@ -84,9 +88,39 @@ func (c TaskService) Create(taskDTO dto.TaskDTO) (*dto.TaskDTO, error) {
 		return nil, err
 	}
 
+	var requestHeadersCreated = make([]domain.Header, 0)
 	for _, header := range task.RequestHeaders {
-		c.HeaderRepository.Create(tx, &header)
+		headerCreated, err := c.HeaderRepository.Create(tx, &header)
+		if err != nil {
+			log.Println("error calling taskRepository.getById() method: ", err)
+			err := tx.Rollback()
+			if err != nil {
+				log.Println("error while rolling back transaction in taskRepository.getById() method : ", err)
+			}
+			return nil, err
+		}
+
+		requestHeadersCreated = append(requestHeadersCreated, *headerCreated)
 	}
+
+	resultTask.RequestHeaders = requestHeadersCreated
+
+	var responseHeadersCreated = make([]domain.Header, 0)
+	for _, header := range task.ResponseHeaders {
+		headerCreated, err := c.HeaderRepository.Create(tx, &header)
+		if err != nil {
+			log.Println("error calling taskRepository.getById() method: ", err)
+			err := tx.Rollback()
+			if err != nil {
+				log.Println("error while rolling back transaction in taskRepository.getById() method : ", err)
+			}
+			return nil, err
+		}
+
+		responseHeadersCreated = append(responseHeadersCreated, *headerCreated)
+	}
+
+	resultTask.ResponseHeaders = responseHeadersCreated
 
 	err = tx.Commit()
 	if err != nil {
@@ -104,8 +138,9 @@ func (c TaskService) Update(taskDTO dto.TaskDTO) (*dto.TaskDTO, error) {
 		log.Println("error while opening transaction taskRepository.getById() method: ", err)
 		return nil, err
 	}
-	task := domain.Task{}
-	resultTask, err := c.TaskRepository.Update(tx, &task)
+
+	taskEntity := c.TaskMapper.MapToEntity(taskDTO)
+	resultTask, err := c.TaskRepository.Update(tx, &taskEntity)
 
 	if err != nil {
 		log.Println("error calling taskRepository.getById() method: ", err)
@@ -114,6 +149,44 @@ func (c TaskService) Update(taskDTO dto.TaskDTO) (*dto.TaskDTO, error) {
 			log.Println("error while rolling back transaction in taskRepository.getById() method : ", err)
 		}
 		return nil, err
+	}
+
+	requestHeaders, err := c.HeaderRepository.GetRequestHeaders(tx, taskDTO.Id)
+
+	if err != nil {
+		log.Println("error calling taskRepository.getById() method: ", err)
+		err := tx.Rollback()
+		if err != nil {
+			log.Println("error while rolling back transaction in taskRepository.getById() method : ", err)
+		}
+		return nil, err
+	}
+
+	for _, headerFromInput := range taskEntity.RequestHeaders {
+		for _, headerFromDb := range *requestHeaders {
+			if strings.EqualFold(headerFromInput.Name, headerFromDb.Name) {
+
+			}
+		}
+	}
+
+	responseHeaders, err := c.HeaderRepository.GetResponseHeaders(tx, taskDTO.Id)
+
+	if err != nil {
+		log.Println("error calling taskRepository.getById() method: ", err)
+		err := tx.Rollback()
+		if err != nil {
+			log.Println("error while rolling back transaction in taskRepository.getById() method : ", err)
+		}
+		return nil, err
+	}
+
+	for _, headerFromInput := range taskEntity.ResponseHeaders {
+		for _, headerFromDb := range *responseHeaders {
+			if strings.EqualFold(headerFromInput.Name, headerFromDb.Name) {
+
+			}
+		}
 	}
 
 	err = tx.Commit()
@@ -152,6 +225,7 @@ func (c TaskService) DeleteById(id string) error {
 	return nil
 }
 
+// TaskMappers = mappers entity to dto, and dto to entity object
 type TaskMapper struct {
 }
 
@@ -215,3 +289,26 @@ func (tm TaskMapper) MapToEntity(taskDTO dto.TaskDTO) domain.Task {
 
 	return task
 }
+
+// func ErrorHandler(fn Executable) error {
+// 	err := fn()
+// 	if err != nil {
+// 		defer func() {
+// 			if p := recover(); p != nil {
+// 				// a panic occurred, rollback and repanic
+// 				tx.Rollback()
+// 				panic(p)
+// 			} else if err != nil {
+// 				// something went wrong, rollback
+// 				tx.Rollback()
+// 			} else {
+// 				// all good, commit
+// 				err = tx.Commit()
+// 			}
+// 		}()
+
+// 	}
+// 	return err
+// }
+
+// type Executable func() error

@@ -12,6 +12,8 @@ import (
 type TaskRepository struct {
 }
 
+// Gets existing task entity from DB by id
+// if not found returns nil
 func (t TaskRepository) GetById(tx *sql.Tx, id string) (*domain.Task, error) {
 	sb := sqlbuilder.NewSelectBuilder()
 
@@ -41,6 +43,8 @@ func (t TaskRepository) GetById(tx *sql.Tx, id string) (*domain.Task, error) {
 	return task, nil
 }
 
+// Creates new task entity
+// returns new create task entity , with unique id
 func (t TaskRepository) Create(tx *sql.Tx, task *domain.Task) (*domain.Task, error) {
 	uid, err := uuid.NewUUID()
 	if err != nil {
@@ -63,6 +67,8 @@ func (t TaskRepository) Create(tx *sql.Tx, task *domain.Task) (*domain.Task, err
 	return task, nil
 }
 
+// Updates task entity
+// returns Updated task entity
 func (t TaskRepository) Update(tx *sql.Tx, task *domain.Task) (*domain.Task, error) {
 	sb := sqlbuilder.NewUpdateBuilder()
 	sb.Update("task").
@@ -84,6 +90,9 @@ func (t TaskRepository) Update(tx *sql.Tx, task *domain.Task) (*domain.Task, err
 	return task, nil
 }
 
+// Gets all tasks from DB with pagination
+// page represents number of page in DB, starts from 0
+// size represents size of the page fetched from DB
 func (t TaskRepository) FindAll(tx *sql.Tx, page, size int) (*[]domain.Task, error) {
 	sb := sqlbuilder.NewSelectBuilder()
 
@@ -115,6 +124,7 @@ func (t TaskRepository) FindAll(tx *sql.Tx, page, size int) (*[]domain.Task, err
 	return &result, nil
 }
 
+// deletes task entity  in DB by task
 func (t TaskRepository) DeleteById(tx *sql.Tx, id string) error {
 	sb := sqlbuilder.NewDeleteBuilder()
 	sb.DeleteFrom("task").Where(sb.Equal("id", id))

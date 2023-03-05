@@ -3,19 +3,19 @@ package dto
 import "example.com/test_axxonsoft/v2/domain"
 
 type TaskDTO struct {
-	Id              string
-	Method          string
-	Url             string
-	HttpStatusCode  string
-	TaskStatus      domain.TaskStatus
-	ResponseLength  int
-	RequestHeaders  []HeaderDTO
-	RequestBody     string
-	ResponseHeaders []HeaderDTO
-	ResponseBody    string
+	Id              string            `json:"id"`
+	Method          string            `json:"method"`
+	Url             string            `json:"url"`
+	HttpStatusCode  string            `json:"httpStatusCode"`
+	TaskStatus      domain.TaskStatus `json:"taskStatus"`
+	ResponseLength  int               `json:"responseLength"`
+	RequestHeaders  []HeaderDTO       `json:"requestHeaders"`
+	RequestBody     string            `json:"requestBody"`
+	ResponseHeaders []HeaderDTO       `json:"responseHeaders"`
+	ResponseBody    string            `json:"responseBody"`
 }
 
 type HeaderDTO struct {
-	Name  string
-	Value string
+	Name  string `json:"name"`
+	Value string `json:"value"`
 }

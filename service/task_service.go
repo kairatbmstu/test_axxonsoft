@@ -31,6 +31,17 @@ func (c TaskService) GetById(id string) (*dto.TaskDTO, error) {
 		return nil, err
 	}
 
+	requestHeaders, err := c.HeaderRepository.GetRequestHeaders(tx, id)
+
+	if err != nil {
+		log.Println("error calling taskRepository.getById() method: ", err)
+		err := tx.Rollback()
+		if err != nil {
+			log.Println("error while rolling back transaction in taskRepository.getById() method : ", err)
+		}
+		return nil, err
+	}
+
 	err = tx.Commit()
 	if err != nil {
 		log.Println("error while commiting transaction in taskRepository.getById() method : ", err)
@@ -47,6 +58,15 @@ func (c TaskService) GetById(id string) (*dto.TaskDTO, error) {
 		RequestBody:    task.RequestBody,
 		ResponseBody:   task.ResponseBody,
 	}
+
+	for _, header := range *requestHeaders {
+		var headerDto = dto.HeaderDTO{
+			Name:  header.Name,
+			Value: header.Value,
+		}
+		taskDto.RequestHeaders = append(taskDto.RequestHeaders, headerDto)
+	}
+
 	return &taskDto, nil
 }
 

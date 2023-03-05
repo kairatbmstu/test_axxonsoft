@@ -4,10 +4,10 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
-	"net/http"
 
 	"example.com/test_axxonsoft/v2/controller"
 	"example.com/test_axxonsoft/v2/database"
+	"github.com/gin-gonic/gin"
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
@@ -39,7 +39,10 @@ func main() {
 		panic(err)
 	}
 
-	http.HandleFunc("/task/", controller.TaskHandler)
+	router := gin.Default()
 
-	http.ListenAndServe(":8080", nil)
+	router.GET("/task", controller.GetTask)
+	router.POST("/task", controller.PostTask)
+
+	router.Run(":8080")
 }

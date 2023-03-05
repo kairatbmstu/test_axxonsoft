@@ -12,15 +12,16 @@ import (
 type TaskService struct {
 	TaskRepository   repository.TaskRepository
 	HeaderRepository repository.HeaderRepository
+	TaskMapper       TaskMapper
 }
 
-func (c TaskService) GetById(id string) (*dto.TaskDTO, error) {
+func (t TaskService) GetById(id string) (*dto.TaskDTO, error) {
 	tx, err := database.DB.Begin()
 	if err != nil {
 		log.Println("error while opening transaction taskRepository.getById() method: ", err)
 		return nil, err
 	}
-	task, err := c.TaskRepository.GetById(tx, id)
+	task, err := t.TaskRepository.GetById(tx, id)
 
 	if err != nil {
 		log.Println("error calling taskRepository.getById() method: ", err)
@@ -31,7 +32,7 @@ func (c TaskService) GetById(id string) (*dto.TaskDTO, error) {
 		return nil, err
 	}
 
-	requestHeaders, err := c.HeaderRepository.GetRequestHeaders(tx, id)
+	requestHeaders, err := t.HeaderRepository.GetRequestHeaders(tx, id)
 
 	if err != nil {
 		log.Println("error calling taskRepository.getById() method: ", err)
@@ -41,6 +42,8 @@ func (c TaskService) GetById(id string) (*dto.TaskDTO, error) {
 		}
 		return nil, err
 	}
+
+	task.RequestHeaders = *requestHeaders
 
 	err = tx.Commit()
 	if err != nil {
@@ -48,25 +51,7 @@ func (c TaskService) GetById(id string) (*dto.TaskDTO, error) {
 		return nil, err
 	}
 
-	var taskDto = dto.TaskDTO{
-		Id:             task.Id,
-		Method:         task.Method,
-		Url:            task.Url,
-		HttpStatusCode: task.HttpStatusCode,
-		ResponseLength: task.ResponseLength,
-		TaskStatus:     task.TaskStatus,
-		RequestBody:    task.RequestBody,
-		ResponseBody:   task.ResponseBody,
-	}
-
-	for _, header := range *requestHeaders {
-		var headerDto = dto.HeaderDTO{
-			Name:  header.Name,
-			Value: header.Value,
-		}
-		taskDto.RequestHeaders = append(taskDto.RequestHeaders, headerDto)
-	}
-
+	var taskDto = t.TaskMapper.MapToDto(*task)
 	return &taskDto, nil
 }
 
@@ -76,7 +61,10 @@ func (c TaskService) Create(taskDTO dto.TaskDTO) (*dto.TaskDTO, error) {
 		log.Println("error while opening transaction taskRepository.getById() method: ", err)
 		return nil, err
 	}
-	resultTask, err := c.TaskRepository.Create(tx, id)
+
+	task := c.TaskMapper.MapToEntity(taskDTO)
+
+	resultTask, err := c.TaskRepository.Create(tx, &task)
 
 	if err != nil {
 		log.Println("error calling taskRepository.getById() method: ", err)
@@ -93,16 +81,7 @@ func (c TaskService) Create(taskDTO dto.TaskDTO) (*dto.TaskDTO, error) {
 		return nil, err
 	}
 
-	var taskDto = dto.TaskDTO{
-		Id:             resultTask.Id,
-		Method:         resultTask.Method,
-		Url:            resultTask.Url,
-		HttpStatusCode: resultTask.HttpStatusCode,
-		ResponseLength: resultTask.ResponseLength,
-		TaskStatus:     resultTask.TaskStatus,
-		RequestBody:    resultTask.RequestBody,
-		ResponseBody:   resultTask.ResponseBody,
-	}
+	var taskDto = c.TaskMapper.MapToDto(*resultTask)
 	return &taskDto, nil
 }
 
@@ -113,7 +92,7 @@ func (c TaskService) Update(taskDTO dto.TaskDTO) (*dto.TaskDTO, error) {
 		return nil, err
 	}
 	task := domain.Task{}
-	taskResult, err := c.TaskRepository.Update(tx, &task)
+	resultTask, err := c.TaskRepository.Update(tx, &task)
 
 	if err != nil {
 		log.Println("error calling taskRepository.getById() method: ", err)
@@ -130,16 +109,7 @@ func (c TaskService) Update(taskDTO dto.TaskDTO) (*dto.TaskDTO, error) {
 		return nil, err
 	}
 
-	var taskDto = dto.TaskDTO{
-		Id:             taskResult.Id,
-		Method:         taskResult.Method,
-		Url:            taskResult.Url,
-		HttpStatusCode: taskResult.HttpStatusCode,
-		ResponseLength: taskResult.ResponseLength,
-		TaskStatus:     taskResult.TaskStatus,
-		RequestBody:    taskResult.RequestBody,
-		ResponseBody:   taskResult.ResponseBody,
-	}
+	var taskDto = c.TaskMapper.MapToDto(*resultTask)
 	return &taskDto, nil
 }
 
@@ -167,4 +137,60 @@ func (c TaskService) DeleteById(id string) error {
 	}
 
 	return nil
+}
+
+type TaskMapper struct {
+}
+
+func (tm TaskMapper) MapToDto(task domain.Task) dto.TaskDTO {
+	var taskDto = dto.TaskDTO{
+		Id:             task.Id,
+		Method:         task.Method,
+		Url:            task.Url,
+		HttpStatusCode: task.HttpStatusCode,
+		TaskStatus:     task.TaskStatus,
+		ResponseLength: task.ResponseLength,
+		RequestBody:    task.RequestBody,
+		ResponseBody:   task.ResponseBody,
+	}
+
+	for _, header := range task.RequestHeaders {
+		var headerDto = dto.HeaderDTO{
+			Name:  header.Name,
+			Value: header.Value,
+		}
+		taskDto.RequestHeaders = append(taskDto.RequestHeaders, headerDto)
+	}
+
+	for _, header := range task.ResponseHeaders {
+		var headerDto = dto.HeaderDTO{
+			Name:  header.Name,
+			Value: header.Value,
+		}
+		taskDto.ResponseHeaders = append(taskDto.ResponseHeaders, headerDto)
+	}
+
+	return taskDto
+}
+
+func (tm TaskMapper) MapToEntity(taskDTO dto.TaskDTO) domain.Task {
+	var task = domain.Task{
+		HttpStatusCode: taskDTO.HttpStatusCode,
+		Method:         taskDTO.Method,
+		RequestBody:    taskDTO.RequestBody,
+		ResponseBody:   taskDTO.ResponseBody,
+		ResponseLength: taskDTO.ResponseLength,
+		TaskStatus:     taskDTO.TaskStatus,
+		Url:            taskDTO.Url,
+	}
+
+	for _, headerDto := range taskDTO.ResponseHeaders {
+		var header = domain.Header{
+			Name:  headerDto.Name,
+			Value: headerDto.Value,
+		}
+		task.ResponseHeaders = append(task.ResponseHeaders, header)
+	}
+
+	return task
 }

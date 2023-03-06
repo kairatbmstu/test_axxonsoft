@@ -159,10 +159,19 @@ func (c TaskService) SendToQueue(taskDTO dto.TaskDTO) error {
 	}
 	log.Printf(" [x] Sent %s\n", body)
 
+	// save and change task status to in_process
+	// send taskDto to Queue
 	return nil
 }
 
 func (c TaskService) ReceiveFromQueue(taskDTO dto.TaskDTO) error {
+	//receive taskDto
+	//make http request
+	//handle response from http request
+	//if http ~ 4xx or 5xx
+	//save response with task status error
+	//if http status ~ 2xx
+	//save response with task status done
 	return nil
 }
 

@@ -45,14 +45,18 @@ func (t TaskRepository) GetById(tx *sql.Tx, id uuid.UUID) (*domain.Task, error) 
 
 // Creates new task entity
 // returns new create task entity , with unique id
-func (t TaskRepository) Create(tx *sql.Tx, task *domain.Task) (*domain.Task, error) {
+func (t TaskRepository) Create(tx *sql.Tx, task *domain.Task) error {
 	uid, err := uuid.NewV7()
 	if err != nil {
 		log.Println("an error occurred while generating uuid : ", err.Error())
-		return nil, err
+		return err
 	}
 
 	task.Id = uid
+
+	for i := range task.RequestHeaders {
+		task.RequestHeaders[i].RequestTaskId = &task.Id
+	}
 
 	sb := sqlbuilder.PostgreSQL.NewInsertBuilder()
 	sb.InsertInto("task").Cols("id", "method", "url", "http_status_code", "task_status", "response_length",
@@ -62,14 +66,20 @@ func (t TaskRepository) Create(tx *sql.Tx, task *domain.Task) (*domain.Task, err
 	_, err = tx.Exec(query, args...)
 	if err != nil {
 		log.Println("an error occurred while executing insert statement : ", err.Error())
-		return nil, err
+		return err
 	}
-	return task, nil
+
+	return nil
 }
 
 // Updates task entity
 // returns Updated task entity
-func (t TaskRepository) Update(tx *sql.Tx, task *domain.Task) (*domain.Task, error) {
+func (t TaskRepository) Update(tx *sql.Tx, task *domain.Task) error {
+
+	for i := range task.ResponseHeaders {
+		task.ResponseHeaders[i].ResponseTaskId = &task.Id
+	}
+
 	sb := sqlbuilder.PostgreSQL.NewUpdateBuilder()
 	sb.Update("task").
 		Set(sb.Equal("id", task.Id)).
@@ -85,9 +95,9 @@ func (t TaskRepository) Update(tx *sql.Tx, task *domain.Task) (*domain.Task, err
 	_, err := tx.Exec(query, args...)
 	if err != nil {
 		log.Println("an error occurred while executing insert statement : ", err.Error())
-		return nil, err
+		return err
 	}
-	return task, nil
+	return nil
 }
 
 // Gets all tasks from DB with pagination

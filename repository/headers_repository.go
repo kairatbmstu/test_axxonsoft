@@ -21,8 +21,8 @@ func (h HeaderRepository) Create(tx *sql.Tx, header *domain.Header) (*domain.Hea
 	header.Id = uid
 
 	sb := sqlbuilder.PostgreSQL.NewInsertBuilder()
-	sb.InsertInto("headers").Cols("id", "request_headers_task_id", "response_headers_task_id", "header_name", "header_value").
-		Values(header.Id, header.RequestTaskId, header.ResponsetTaskId, header.Name, header.Value)
+	sb.InsertInto("headers").Cols("id", "request_headers_task_id", "header_name", "header_value").
+		Values(header.Id, *header.RequestTaskId, header.Name, header.Value)
 
 	query, args := sb.Build()
 	_, err = tx.Exec(query, args...)
@@ -38,7 +38,7 @@ func (h HeaderRepository) Update(tx *sql.Tx, header *domain.Header) (*domain.Hea
 	sb := sqlbuilder.PostgreSQL.NewUpdateBuilder()
 	sb.Update("headers")
 	sb.Set(sb.Equal("request_headers_task_id", header.RequestTaskId))
-	sb.Set(sb.Equal("response_headers_task_id", header.ResponsetTaskId))
+	sb.Set(sb.Equal("response_headers_task_id", header.ResponseTaskId))
 	sb.Set(sb.Equal("header_name", header.Name))
 	sb.Set(sb.Equal("header_value", header.Value))
 	sb.Where(sb.Equal("id", header.Id))
@@ -67,7 +67,7 @@ func (h HeaderRepository) GetRequestHeaders(tx *sql.Tx, taskId uuid.UUID) (*[]do
 
 	for rows.Next() {
 		header := new(domain.Header)
-		err = rows.Scan(&header.Id, &header.RequestTaskId, &header.ResponsetTaskId,
+		err = rows.Scan(&header.Id, &header.RequestTaskId, &header.ResponseTaskId,
 			&header.Name, &header.Value)
 		if err != nil {
 			log.Println("err : ", err)
@@ -97,7 +97,7 @@ func (h HeaderRepository) GetResponseHeaders(tx *sql.Tx, taskId uuid.UUID) (*[]d
 
 	for rows.Next() {
 		header := new(domain.Header)
-		err = rows.Scan(&header.Id, &header.RequestTaskId, &header.ResponsetTaskId,
+		err = rows.Scan(&header.Id, &header.RequestTaskId, &header.ResponseTaskId,
 			&header.Name, &header.Value)
 		if err != nil {
 			log.Println("err : ", err)

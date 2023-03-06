@@ -1,8 +1,6 @@
 package domain
 
 import (
-	"database/sql"
-
 	"github.com/gofrs/uuid"
 )
 
@@ -20,11 +18,11 @@ type Task struct {
 }
 
 type Header struct {
-	Id              uuid.UUID
-	RequestTaskId   sql.NullString
-	ResponsetTaskId sql.NullString
-	Name            string
-	Value           string
+	Id             uuid.UUID
+	RequestTaskId  *uuid.UUID
+	ResponseTaskId *uuid.UUID
+	Name           string
+	Value          string
 }
 
 type TaskStatus string

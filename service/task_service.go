@@ -78,7 +78,7 @@ func (c TaskService) Create(taskDTO dto.TaskDTO) (*dto.TaskDTO, error) {
 
 	task := c.TaskMapper.MapToEntity(taskDTO)
 
-	resultTask, err := c.TaskRepository.Create(tx, &task)
+	err = c.TaskRepository.Create(tx, &task)
 
 	if err != nil {
 		log.Println("error calling taskRepository.getById() method: ", err)
@@ -89,9 +89,8 @@ func (c TaskService) Create(taskDTO dto.TaskDTO) (*dto.TaskDTO, error) {
 		return nil, err
 	}
 
-	var requestHeadersCreated = make([]domain.Header, 0)
 	for _, header := range task.RequestHeaders {
-		headerCreated, err := c.HeaderRepository.Create(tx, &header)
+		_, err := c.HeaderRepository.Create(tx, &header)
 		if err != nil {
 			log.Println("error calling taskRepository.getById() method: ", err)
 			err := tx.Rollback()
@@ -100,28 +99,7 @@ func (c TaskService) Create(taskDTO dto.TaskDTO) (*dto.TaskDTO, error) {
 			}
 			return nil, err
 		}
-
-		requestHeadersCreated = append(requestHeadersCreated, *headerCreated)
 	}
-
-	resultTask.RequestHeaders = requestHeadersCreated
-
-	var responseHeadersCreated = make([]domain.Header, 0)
-	for _, header := range task.ResponseHeaders {
-		headerCreated, err := c.HeaderRepository.Create(tx, &header)
-		if err != nil {
-			log.Println("error calling taskRepository.getById() method: ", err)
-			err := tx.Rollback()
-			if err != nil {
-				log.Println("error while rolling back transaction in taskRepository.getById() method : ", err)
-			}
-			return nil, err
-		}
-
-		responseHeadersCreated = append(responseHeadersCreated, *headerCreated)
-	}
-
-	resultTask.ResponseHeaders = responseHeadersCreated
 
 	err = tx.Commit()
 	if err != nil {
@@ -129,7 +107,7 @@ func (c TaskService) Create(taskDTO dto.TaskDTO) (*dto.TaskDTO, error) {
 		return nil, err
 	}
 
-	var taskDto = c.TaskMapper.MapToDto(*resultTask)
+	var taskDto = c.TaskMapper.MapToDto(task)
 	return &taskDto, nil
 }
 
@@ -141,7 +119,7 @@ func (c TaskService) Update(taskDTO dto.TaskDTO) (*dto.TaskDTO, error) {
 	}
 
 	taskEntity := c.TaskMapper.MapToEntity(taskDTO)
-	resultTask, err := c.TaskRepository.Update(tx, &taskEntity)
+	err = c.TaskRepository.Update(tx, &taskEntity)
 
 	if err != nil {
 		log.Println("error calling taskRepository.getById() method: ", err)
@@ -196,7 +174,7 @@ func (c TaskService) Update(taskDTO dto.TaskDTO) (*dto.TaskDTO, error) {
 		return nil, err
 	}
 
-	var taskDto = c.TaskMapper.MapToDto(*resultTask)
+	var taskDto = c.TaskMapper.MapToDto(taskEntity)
 	return &taskDto, nil
 }
 
@@ -242,10 +220,12 @@ func (tm TaskMapper) MapToDto(task domain.Task) dto.TaskDTO {
 		ResponseBody:   task.ResponseBody,
 	}
 
+	taskDto.RequestHeaders = make(map[string]string)
 	for _, header := range task.RequestHeaders {
 		taskDto.RequestHeaders[header.Name] = header.Value
 	}
 
+	taskDto.ResponseHeaders = make(map[string]string)
 	for _, header := range task.ResponseHeaders {
 		taskDto.ResponseHeaders[header.Name] = header.Value
 	}
@@ -282,26 +262,3 @@ func (tm TaskMapper) MapToEntity(taskDTO dto.TaskDTO) domain.Task {
 
 	return task
 }
-
-// func ErrorHandler(fn Executable) error {
-// 	err := fn()
-// 	if err != nil {
-// 		defer func() {
-// 			if p := recover(); p != nil {
-// 				// a panic occurred, rollback and repanic
-// 				tx.Rollback()
-// 				panic(p)
-// 			} else if err != nil {
-// 				// something went wrong, rollback
-// 				tx.Rollback()
-// 			} else {
-// 				// all good, commit
-// 				err = tx.Commit()
-// 			}
-// 		}()
-
-// 	}
-// 	return err
-// }
-
-// type Executable func() error

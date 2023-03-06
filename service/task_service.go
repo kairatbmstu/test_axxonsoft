@@ -1,14 +1,17 @@
 package service
 
 import (
+	"context"
 	"log"
-	"strings"
+	"time"
 
 	"example.com/test_axxonsoft/v2/database"
 	"example.com/test_axxonsoft/v2/domain"
 	"example.com/test_axxonsoft/v2/dto"
+	"example.com/test_axxonsoft/v2/rabbit"
 	"example.com/test_axxonsoft/v2/repository"
 	"github.com/gofrs/uuid"
+	amqp "github.com/rabbitmq/amqp091-go"
 )
 
 var TaskServiceInst = TaskService{}
@@ -69,15 +72,16 @@ func (t TaskService) GetById(id uuid.UUID) (*dto.TaskDTO, error) {
 	return &taskDto, nil
 }
 
-func (c TaskService) Create(taskDTO dto.TaskDTO) (*dto.TaskDTO, error) {
+// Create New Task entity
+func (c TaskService) CreateNewTask(taskDTO dto.TaskDTO) (*dto.TaskDTO, error) {
 	tx, err := database.DB.Begin()
 	if err != nil {
 		log.Println("error while opening transaction taskRepository.getById() method: ", err)
 		return nil, err
 	}
 
+	taskDTO.TaskStatus = domain.TaskStatus_NEW
 	task := c.TaskMapper.MapToEntity(taskDTO)
-
 	err = c.TaskRepository.Create(tx, &task)
 
 	if err != nil {
@@ -90,7 +94,7 @@ func (c TaskService) Create(taskDTO dto.TaskDTO) (*dto.TaskDTO, error) {
 	}
 
 	for _, header := range task.RequestHeaders {
-		_, err := c.HeaderRepository.Create(tx, &header)
+		err := c.HeaderRepository.Create(tx, &header)
 		if err != nil {
 			log.Println("error calling taskRepository.getById() method: ", err)
 			err := tx.Rollback()
@@ -111,7 +115,59 @@ func (c TaskService) Create(taskDTO dto.TaskDTO) (*dto.TaskDTO, error) {
 	return &taskDto, nil
 }
 
-func (c TaskService) Update(taskDTO dto.TaskDTO) (*dto.TaskDTO, error) {
+func (c TaskService) SendToQueue(taskDTO dto.TaskDTO) error {
+	conn, err := rabbit.GetConnection()
+	if err != nil {
+		return err
+	}
+	ch, err := conn.Channel()
+	if err != nil {
+		return err
+	}
+	defer ch.Close()
+	defer conn.Close()
+
+	q, err := ch.QueueDeclare(
+		"hello", // name
+		false,   // durable
+		false,   // delete when unused
+		false,   // exclusive
+		false,   // no-wait
+		nil,     // arguments
+	)
+	if err != nil {
+		log.Println("error while commiting transaction in taskRepository.getById() method : ", err)
+		return nil
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	body := "Hello World!"
+	err = ch.PublishWithContext(ctx,
+		"",     // exchange
+		q.Name, // routing key
+		false,  // mandatory
+		false,  // immediate
+		amqp.Publishing{
+			ContentType: "text/plain",
+			Body:        []byte(body),
+		})
+	if err != nil {
+		log.Println("error while commiting transaction in taskRepository.getById() method : ", err)
+		return nil
+	}
+	log.Printf(" [x] Sent %s\n", body)
+
+	return nil
+}
+
+func (c TaskService) ReceiveFromQueue(taskDTO dto.TaskDTO) error {
+	return nil
+}
+
+// Saves Response received from http request
+func (c TaskService) SaveResponse(taskDTO dto.TaskDTO) (*dto.TaskDTO, error) {
 	tx, err := database.DB.Begin()
 	if err != nil {
 		log.Println("error while opening transaction taskRepository.getById() method: ", err)
@@ -130,41 +186,15 @@ func (c TaskService) Update(taskDTO dto.TaskDTO) (*dto.TaskDTO, error) {
 		return nil, err
 	}
 
-	requestHeaders, err := c.HeaderRepository.GetRequestHeaders(tx, taskDTO.Id)
-
-	if err != nil {
-		log.Println("error calling taskRepository.getById() method: ", err)
-		err := tx.Rollback()
+	for _, header := range taskEntity.ResponseHeaders {
+		err := c.HeaderRepository.Create(tx, &header)
 		if err != nil {
-			log.Println("error while rolling back transaction in taskRepository.getById() method : ", err)
-		}
-		return nil, err
-	}
-
-	for _, headerFromInput := range taskEntity.RequestHeaders {
-		for _, headerFromDb := range *requestHeaders {
-			if strings.EqualFold(headerFromInput.Name, headerFromDb.Name) {
-
+			log.Println("error calling taskRepository.getById() method: ", err)
+			err := tx.Rollback()
+			if err != nil {
+				log.Println("error while rolling back transaction in taskRepository.getById() method : ", err)
 			}
-		}
-	}
-
-	responseHeaders, err := c.HeaderRepository.GetResponseHeaders(tx, taskDTO.Id)
-
-	if err != nil {
-		log.Println("error calling taskRepository.getById() method: ", err)
-		err := tx.Rollback()
-		if err != nil {
-			log.Println("error while rolling back transaction in taskRepository.getById() method : ", err)
-		}
-		return nil, err
-	}
-
-	for _, headerFromInput := range taskEntity.ResponseHeaders {
-		for _, headerFromDb := range *responseHeaders {
-			if strings.EqualFold(headerFromInput.Name, headerFromDb.Name) {
-
-			}
+			return nil, err
 		}
 	}
 
@@ -178,20 +208,19 @@ func (c TaskService) Update(taskDTO dto.TaskDTO) (*dto.TaskDTO, error) {
 	return &taskDto, nil
 }
 
-func (c TaskService) DeleteById(id string) error {
+func (c TaskService) ChangeTaskStatus(taskDTO dto.TaskDTO) error {
+
 	tx, err := database.DB.Begin()
 	if err != nil {
 		log.Println("error while opening transaction taskRepository.getById() method: ", err)
 		return err
 	}
-	err = c.TaskRepository.DeleteById(tx, id)
+
+	taskEntity := c.TaskMapper.MapToEntity(taskDTO)
+	err = c.TaskRepository.ChangeTaskStatus(tx, &taskEntity)
 
 	if err != nil {
-		log.Println("error calling taskRepository.getById() method: ", err)
-		err := tx.Rollback()
-		if err != nil {
-			log.Println("error while rolling back transaction in taskRepository.getById() method : ", err)
-		}
+		log.Println("error while commiting transaction in taskRepository.getById() method : ", err)
 		return err
 	}
 

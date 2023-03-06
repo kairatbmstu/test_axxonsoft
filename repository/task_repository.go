@@ -100,6 +100,21 @@ func (t TaskRepository) Update(tx *sql.Tx, task *domain.Task) error {
 	return nil
 }
 
+// Change task status
+func (t TaskRepository) ChangeTaskStatus(tx *sql.Tx, task *domain.Task) error {
+	sb := sqlbuilder.PostgreSQL.NewUpdateBuilder()
+	sb.Update("task").
+		Set(sb.Equal("task_status", task.TaskStatus)).
+		Where(sb.Equal("id", task.Id))
+	query, args := sb.Build()
+	_, err := tx.Exec(query, args...)
+	if err != nil {
+		log.Println("an error occurred while executing insert statement : ", err.Error())
+		return err
+	}
+	return nil
+}
+
 // Gets all tasks from DB with pagination
 // page represents number of page in DB, starts from 0
 // size represents size of the page fetched from DB

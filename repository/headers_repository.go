@@ -12,11 +12,11 @@ import (
 type HeaderRepository struct {
 }
 
-func (h HeaderRepository) Create(tx *sql.Tx, header *domain.Header) (*domain.Header, error) {
+func (h HeaderRepository) Create(tx *sql.Tx, header *domain.Header) error {
 	uid, err := uuid.NewV7()
 	if err != nil {
 		log.Println("an error occurred while generating uuid : ", err.Error())
-		return nil, err
+		return err
 	}
 	header.Id = uid
 
@@ -28,12 +28,12 @@ func (h HeaderRepository) Create(tx *sql.Tx, header *domain.Header) (*domain.Hea
 	_, err = tx.Exec(query, args...)
 	if err != nil {
 		log.Println("an error occurred while executing insert statement : ", err.Error())
-		return nil, err
+		return err
 	}
-	return header, nil
+	return nil
 }
 
-func (h HeaderRepository) Update(tx *sql.Tx, header *domain.Header) (*domain.Header, error) {
+func (h HeaderRepository) Update(tx *sql.Tx, header *domain.Header) error {
 
 	sb := sqlbuilder.PostgreSQL.NewUpdateBuilder()
 	sb.Update("headers")
@@ -47,9 +47,9 @@ func (h HeaderRepository) Update(tx *sql.Tx, header *domain.Header) (*domain.Hea
 	_, err := tx.Exec(query, args...)
 	if err != nil {
 		log.Println("an error occurred while executing Update statement : ", err.Error())
-		return nil, err
+		return err
 	}
-	return header, nil
+	return nil
 }
 
 func (h HeaderRepository) GetRequestHeaders(tx *sql.Tx, taskId uuid.UUID) (*[]domain.Header, error) {

@@ -20,7 +20,7 @@ func PostTask(c *gin.Context) {
 		return
 	}
 
-	taskResultDto, err := service.TaskServiceInst.Create(taskDto)
+	taskResultDto, err := service.TaskServiceInst.CreateNewTask(taskDto)
 
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{

@@ -8,6 +8,7 @@ import (
 	"example.com/test_axxonsoft/v2/domain"
 	"example.com/test_axxonsoft/v2/dto"
 	"example.com/test_axxonsoft/v2/repository"
+	"github.com/gofrs/uuid"
 )
 
 var TaskServiceInst = TaskService{}
@@ -18,7 +19,7 @@ type TaskService struct {
 	TaskMapper       TaskMapper
 }
 
-func (t TaskService) GetById(id string) (*dto.TaskDTO, error) {
+func (t TaskService) GetById(id uuid.UUID) (*dto.TaskDTO, error) {
 
 	tx, err := database.DB.Begin()
 	if err != nil {
@@ -242,19 +243,11 @@ func (tm TaskMapper) MapToDto(task domain.Task) dto.TaskDTO {
 	}
 
 	for _, header := range task.RequestHeaders {
-		var headerDto = dto.HeaderDTO{
-			Name:  header.Name,
-			Value: header.Value,
-		}
-		taskDto.RequestHeaders = append(taskDto.RequestHeaders, headerDto)
+		taskDto.RequestHeaders[header.Name] = header.Value
 	}
 
 	for _, header := range task.ResponseHeaders {
-		var headerDto = dto.HeaderDTO{
-			Name:  header.Name,
-			Value: header.Value,
-		}
-		taskDto.ResponseHeaders = append(taskDto.ResponseHeaders, headerDto)
+		taskDto.ResponseHeaders[header.Name] = header.Value
 	}
 
 	return taskDto
@@ -271,18 +264,18 @@ func (tm TaskMapper) MapToEntity(taskDTO dto.TaskDTO) domain.Task {
 		Url:            taskDTO.Url,
 	}
 
-	for _, headerDto := range taskDTO.RequestHeaders {
+	for headerName, headerValue := range taskDTO.RequestHeaders {
 		var header = domain.Header{
-			Name:  headerDto.Name,
-			Value: headerDto.Value,
+			Name:  headerName,
+			Value: headerValue,
 		}
 		task.RequestHeaders = append(task.RequestHeaders, header)
 	}
 
-	for _, headerDto := range taskDTO.ResponseHeaders {
+	for headerName, headerValue := range taskDTO.ResponseHeaders {
 		var header = domain.Header{
-			Name:  headerDto.Name,
-			Value: headerDto.Value,
+			Name:  headerName,
+			Value: headerValue,
 		}
 		task.ResponseHeaders = append(task.ResponseHeaders, header)
 	}

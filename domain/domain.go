@@ -1,12 +1,16 @@
 package domain
 
-import "database/sql"
+import (
+	"database/sql"
+
+	"github.com/gofrs/uuid"
+)
 
 type Task struct {
-	Id              string
+	Id              uuid.UUID
 	Method          string
 	Url             string
-	HttpStatusCode  string
+	HttpStatusCode  int
 	TaskStatus      TaskStatus
 	ResponseLength  int
 	RequestHeaders  []Header
@@ -16,7 +20,7 @@ type Task struct {
 }
 
 type Header struct {
-	Id              string
+	Id              uuid.UUID
 	RequestTaskId   sql.NullString
 	ResponsetTaskId sql.NullString
 	Name            string

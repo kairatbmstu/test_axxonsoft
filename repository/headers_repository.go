@@ -5,7 +5,7 @@ import (
 	"log"
 
 	"example.com/test_axxonsoft/v2/domain"
-	"github.com/google/uuid"
+	"github.com/gofrs/uuid"
 	sqlbuilder "github.com/huandu/go-sqlbuilder"
 )
 
@@ -13,19 +13,19 @@ type HeaderRepository struct {
 }
 
 func (h HeaderRepository) Create(tx *sql.Tx, header *domain.Header) (*domain.Header, error) {
-	uid, err := uuid.NewUUID()
+	uid, err := uuid.NewV7()
 	if err != nil {
 		log.Println("an error occurred while generating uuid : ", err.Error())
 		return nil, err
 	}
-	header.Id = uid.String()
+	header.Id = uid
 
-	sb := sqlbuilder.NewInsertBuilder()
+	sb := sqlbuilder.PostgreSQL.NewInsertBuilder()
 	sb.InsertInto("headers").Cols("id", "request_headers_task_id", "response_headers_task_id", "header_name", "header_value").
 		Values(header.Id, header.RequestTaskId, header.ResponsetTaskId, header.Name, header.Value)
 
 	query, args := sb.Build()
-	_, err = tx.Exec(query, args)
+	_, err = tx.Exec(query, args...)
 	if err != nil {
 		log.Println("an error occurred while executing insert statement : ", err.Error())
 		return nil, err
@@ -35,7 +35,7 @@ func (h HeaderRepository) Create(tx *sql.Tx, header *domain.Header) (*domain.Hea
 
 func (h HeaderRepository) Update(tx *sql.Tx, header *domain.Header) (*domain.Header, error) {
 
-	sb := sqlbuilder.NewUpdateBuilder()
+	sb := sqlbuilder.PostgreSQL.NewUpdateBuilder()
 	sb.Update("headers")
 	sb.Set(sb.Equal("request_headers_task_id", header.RequestTaskId))
 	sb.Set(sb.Equal("response_headers_task_id", header.ResponsetTaskId))
@@ -44,7 +44,7 @@ func (h HeaderRepository) Update(tx *sql.Tx, header *domain.Header) (*domain.Hea
 	sb.Where(sb.Equal("id", header.Id))
 	query, args := sb.Build()
 
-	_, err := tx.Exec(query, args)
+	_, err := tx.Exec(query, args...)
 	if err != nil {
 		log.Println("an error occurred while executing Update statement : ", err.Error())
 		return nil, err
@@ -52,8 +52,8 @@ func (h HeaderRepository) Update(tx *sql.Tx, header *domain.Header) (*domain.Hea
 	return header, nil
 }
 
-func (h HeaderRepository) GetRequestHeaders(tx *sql.Tx, taskId string) (*[]domain.Header, error) {
-	sb := sqlbuilder.NewSelectBuilder()
+func (h HeaderRepository) GetRequestHeaders(tx *sql.Tx, taskId uuid.UUID) (*[]domain.Header, error) {
+	sb := sqlbuilder.PostgreSQL.NewSelectBuilder()
 	sb.Select("id", "request_headers_task_id", "response_headers_task_id", "header_name", "header_value").
 		From("task").Where(sb.Equal("id", taskId))
 	query, args := sb.Build()
@@ -82,8 +82,8 @@ func (h HeaderRepository) GetRequestHeaders(tx *sql.Tx, taskId string) (*[]domai
 	return &result, nil
 }
 
-func (h HeaderRepository) GetResponseHeaders(tx *sql.Tx, taskId string) (*[]domain.Header, error) {
-	sb := sqlbuilder.NewSelectBuilder()
+func (h HeaderRepository) GetResponseHeaders(tx *sql.Tx, taskId uuid.UUID) (*[]domain.Header, error) {
+	sb := sqlbuilder.PostgreSQL.NewSelectBuilder()
 	sb.Select("id", "request_headers_task_id", "response_headers_task_id", "header_name", "header_value").
 		From("task").Where(sb.Equal("id", taskId))
 	query, args := sb.Build()

@@ -40,4 +40,7 @@ require (
 	google.golang.org/appengine v1.6.7 // indirect
 )
 
-require github.com/huandu/xstrings v1.3.2 // indirect
+require (
+	github.com/gofrs/uuid v4.4.0+incompatible // indirect
+	github.com/huandu/xstrings v1.3.2 // indirect
+)

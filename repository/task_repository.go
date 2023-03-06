@@ -5,7 +5,7 @@ import (
 	"log"
 
 	"example.com/test_axxonsoft/v2/domain"
-	"github.com/google/uuid"
+	"github.com/gofrs/uuid"
 	sqlbuilder "github.com/huandu/go-sqlbuilder"
 )
 
@@ -14,7 +14,7 @@ type TaskRepository struct {
 
 // Gets existing task entity from DB by id
 // if not found returns nil
-func (t TaskRepository) GetById(tx *sql.Tx, id string) (*domain.Task, error) {
+func (t TaskRepository) GetById(tx *sql.Tx, id uuid.UUID) (*domain.Task, error) {
 	sb := sqlbuilder.NewSelectBuilder()
 
 	sb.Select("id", "method", "url", "http_status_code", "task_status", "response_length",
@@ -46,20 +46,20 @@ func (t TaskRepository) GetById(tx *sql.Tx, id string) (*domain.Task, error) {
 // Creates new task entity
 // returns new create task entity , with unique id
 func (t TaskRepository) Create(tx *sql.Tx, task *domain.Task) (*domain.Task, error) {
-	uid, err := uuid.NewUUID()
+	uid, err := uuid.NewV7()
 	if err != nil {
 		log.Println("an error occurred while generating uuid : ", err.Error())
 		return nil, err
 	}
 
-	task.Id = uid.String()
+	task.Id = uid
 
-	sb := sqlbuilder.NewInsertBuilder()
+	sb := sqlbuilder.PostgreSQL.NewInsertBuilder()
 	sb.InsertInto("task").Cols("id", "method", "url", "http_status_code", "task_status", "response_length",
 		"request_body", "response_body").Values(task.Id, task.Method, task.Url,
-		task.HttpStatusCode, task.TaskStatus, task.ResponseLength)
+		task.HttpStatusCode, task.TaskStatus, task.ResponseLength, task.RequestBody, task.ResponseBody)
 	query, args := sb.Build()
-	_, err = tx.Exec(query, args)
+	_, err = tx.Exec(query, args...)
 	if err != nil {
 		log.Println("an error occurred while executing insert statement : ", err.Error())
 		return nil, err
@@ -70,7 +70,7 @@ func (t TaskRepository) Create(tx *sql.Tx, task *domain.Task) (*domain.Task, err
 // Updates task entity
 // returns Updated task entity
 func (t TaskRepository) Update(tx *sql.Tx, task *domain.Task) (*domain.Task, error) {
-	sb := sqlbuilder.NewUpdateBuilder()
+	sb := sqlbuilder.PostgreSQL.NewUpdateBuilder()
 	sb.Update("task").
 		Set(sb.Equal("id", task.Id)).
 		Set(sb.Equal("method", task.Method)).
@@ -82,7 +82,7 @@ func (t TaskRepository) Update(tx *sql.Tx, task *domain.Task) (*domain.Task, err
 		Set(sb.Equal("response_body", task.ResponseBody)).
 		Where(sb.Equal("id", task.Id))
 	query, args := sb.Build()
-	_, err := tx.Exec(query, args)
+	_, err := tx.Exec(query, args...)
 	if err != nil {
 		log.Println("an error occurred while executing insert statement : ", err.Error())
 		return nil, err
@@ -94,12 +94,12 @@ func (t TaskRepository) Update(tx *sql.Tx, task *domain.Task) (*domain.Task, err
 // page represents number of page in DB, starts from 0
 // size represents size of the page fetched from DB
 func (t TaskRepository) FindAll(tx *sql.Tx, page, size int) (*[]domain.Task, error) {
-	sb := sqlbuilder.NewSelectBuilder()
+	sb := sqlbuilder.PostgreSQL.NewSelectBuilder()
 
 	sb.Select("id", "method", "url", "http_status_code", "task_status", "response_length",
 		"request_body", "response_body").From("task").Offset(page * size).Limit(size)
 	query, args := sb.Build()
-	rows, err := tx.Query(query, args)
+	rows, err := tx.Query(query, args...)
 	if err != nil {
 		log.Println("an error occurred while executing insert statement : ", err.Error())
 		return nil, err
@@ -126,10 +126,10 @@ func (t TaskRepository) FindAll(tx *sql.Tx, page, size int) (*[]domain.Task, err
 
 // deletes task entity  in DB by task
 func (t TaskRepository) DeleteById(tx *sql.Tx, id string) error {
-	sb := sqlbuilder.NewDeleteBuilder()
+	sb := sqlbuilder.PostgreSQL.NewDeleteBuilder()
 	sb.DeleteFrom("task").Where(sb.Equal("id", id))
 	query, args := sb.Build()
-	_, err := tx.Exec(query, args)
+	_, err := tx.Exec(query, args...)
 	if err != nil {
 		log.Println("an error occurred while executing insert statement : ", err.Error())
 		return err

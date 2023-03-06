@@ -1,17 +1,20 @@
 package dto
 
-import "example.com/test_axxonsoft/v2/domain"
+import (
+	"example.com/test_axxonsoft/v2/domain"
+	"github.com/gofrs/uuid"
+)
 
 type TaskDTO struct {
-	Id              string            `json:"id"`
+	Id              uuid.UUID         `json:"id"`
 	Method          string            `json:"method"`
 	Url             string            `json:"url"`
-	HttpStatusCode  string            `json:"httpStatusCode"`
+	HttpStatusCode  int               `json:"httpStatusCode"`
 	TaskStatus      domain.TaskStatus `json:"taskStatus"`
 	ResponseLength  int               `json:"responseLength"`
-	RequestHeaders  []HeaderDTO       `json:"requestHeaders"`
+	RequestHeaders  map[string]string `json:"requestHeaders"`
 	RequestBody     string            `json:"requestBody"`
-	ResponseHeaders []HeaderDTO       `json:"responseHeaders"`
+	ResponseHeaders map[string]string `json:"responseHeaders"`
 	ResponseBody    string            `json:"responseBody"`
 }
 

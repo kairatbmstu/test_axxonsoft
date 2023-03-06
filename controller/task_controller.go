@@ -7,6 +7,7 @@ import (
 	"example.com/test_axxonsoft/v2/dto"
 	"example.com/test_axxonsoft/v2/service"
 	"github.com/gin-gonic/gin"
+	"github.com/gofrs/uuid"
 )
 
 func PostTask(c *gin.Context) {
@@ -34,8 +35,14 @@ func PostTask(c *gin.Context) {
 func GetTask(c *gin.Context) {
 	var id = c.GetString("id")
 	fmt.Println("id : " + id)
-
-	task, err := service.TaskServiceInst.GetById(id)
+	uid, err := uuid.FromString(id)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":        "bad_request",
+			"errorMessage": err.Error(),
+		})
+	}
+	task, err := service.TaskServiceInst.GetById(uid)
 
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{

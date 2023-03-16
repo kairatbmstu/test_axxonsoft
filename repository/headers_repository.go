@@ -55,13 +55,15 @@ func (h HeaderRepository) Update(tx *sql.Tx, header *domain.Header) error {
 func (h HeaderRepository) GetRequestHeaders(tx *sql.Tx, taskId uuid.UUID) (*[]domain.Header, error) {
 	sb := sqlbuilder.PostgreSQL.NewSelectBuilder()
 	sb.Select("id", "request_headers_task_id", "response_headers_task_id", "header_name", "header_value").
-		From("task").Where(sb.Equal("id", taskId))
+		From("headers").Where(sb.Equal("request_headers_task_id", taskId))
 	query, args := sb.Build()
-	rows, err := tx.Query(query, args)
+	rows, err := tx.Query(query, args...)
 	if err != nil {
 		log.Println("an error occurred while executing select statement : ", err.Error())
 		return nil, err
 	}
+
+	defer rows.Close()
 
 	var result = make([]domain.Header, 0)
 
@@ -85,13 +87,15 @@ func (h HeaderRepository) GetRequestHeaders(tx *sql.Tx, taskId uuid.UUID) (*[]do
 func (h HeaderRepository) GetResponseHeaders(tx *sql.Tx, taskId uuid.UUID) (*[]domain.Header, error) {
 	sb := sqlbuilder.PostgreSQL.NewSelectBuilder()
 	sb.Select("id", "request_headers_task_id", "response_headers_task_id", "header_name", "header_value").
-		From("task").Where(sb.Equal("id", taskId))
+		From("headers").Where(sb.Equal("response_headers_task_id", taskId))
 	query, args := sb.Build()
-	rows, err := tx.Query(query, args)
+	rows, err := tx.Query(query, args...)
 	if err != nil {
 		log.Println("an error occurred while executing insert statement : ", err.Error())
 		return nil, err
 	}
+
+	defer rows.Close()
 
 	var result = make([]domain.Header, 0)
 

@@ -15,22 +15,24 @@ type TaskRepository struct {
 // Gets existing task entity from DB by id
 // if not found returns nil
 func (t TaskRepository) GetById(tx *sql.Tx, id uuid.UUID) (*domain.Task, error) {
-	sb := sqlbuilder.NewSelectBuilder()
+	sb := sqlbuilder.PostgreSQL.NewSelectBuilder()
 
 	sb.Select("id", "method", "url", "http_status_code", "task_status", "response_length",
 		"request_body", "response_body").From("task").Where(sb.Equal("id", id))
 	query, args := sb.Build()
-	rows, err := tx.Query(query, args)
+	rows, err := tx.Query(query, args...)
 	if err != nil {
 		log.Println("an error occurred while executing insert statement : ", err.Error())
 		return nil, err
 	}
 
+	defer rows.Close()
+
 	task := new(domain.Task)
 	if rows.Next() {
 
 		err = rows.Scan(&task.Id, &task.Method, &task.Url,
-			&task.HttpStatusCode, &task.TaskStatus, &task.ResponseLength)
+			&task.HttpStatusCode, &task.TaskStatus, &task.ResponseLength, &task.RequestBody, &task.ResponseBody)
 		if err != nil {
 			log.Println("err : ", err)
 			if err == sql.ErrNoRows {

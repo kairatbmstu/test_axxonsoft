@@ -33,7 +33,7 @@ func PostTask(c *gin.Context) {
 }
 
 func GetTask(c *gin.Context) {
-	var id = c.GetString("id")
+	var id = c.Params.ByName("id")
 	fmt.Println("id : " + id)
 	uid, err := uuid.FromString(id)
 	if err != nil {

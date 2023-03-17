@@ -39,6 +39,8 @@ func main() {
 		panic(err)
 	}
 
+	defer database.DB.Close()
+
 	router := gin.Default()
 
 	router.GET("/task/:id", controller.GetTask)

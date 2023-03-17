@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"log"
 	"time"
 
@@ -107,11 +108,19 @@ func (c TaskService) CreateNewTask(taskDTO dto.TaskDTO) (*dto.TaskDTO, error) {
 
 	err = tx.Commit()
 	if err != nil {
-		log.Println("error while commiting transaction in taskRepository.getById() method : ", err)
+		log.Println("error while commiting transaction in taskRepository.CreateNewTask() method : ", err)
 		return nil, err
 	}
 
 	var taskDto = c.TaskMapper.MapToDto(task)
+
+	err = c.SendToQueue(taskDto)
+
+	if err != nil {
+		log.Println("error while sending  taskDto in tasks-queue : ", err)
+		return nil, err
+	}
+
 	return &taskDto, nil
 }
 
@@ -127,31 +136,61 @@ func (c TaskService) SendToQueue(taskDTO dto.TaskDTO) error {
 	defer ch.Close()
 	defer conn.Close()
 
-	q, err := ch.QueueDeclare(
-		"hello", // name
-		false,   // durable
-		false,   // delete when unused
-		false,   // exclusive
-		false,   // no-wait
-		nil,     // arguments
+	queue, err := ch.QueueDeclare(
+		"tasks-queue", // name
+		false,         // durable
+		false,         // delete when unused
+		false,         // exclusive
+		false,         // no-wait
+		nil,           // arguments
 	)
 	if err != nil {
-		log.Println("error while commiting transaction in taskRepository.getById() method : ", err)
+		log.Println("  : ", err)
+		return nil
+	}
+
+	err = ch.ExchangeDeclare(
+		"tasks-exchange", // name
+		"direct",         // type
+		true,             // durable
+		false,            // auto-deleted
+		false,            // internal
+		false,            // no-wait
+		nil,              // arguments
+	)
+
+	if err != nil {
+		log.Println(" : ", err)
+		return nil
+	}
+
+	err = ch.QueueBind(
+		queue.Name,       // queue name
+		"",               // routing key
+		"tasks-exchange", // exchange
+		false,
+		nil)
+
+	if err != nil {
+		log.Println(" : ", err)
 		return nil
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	body := "Hello World!"
+	body, err := json.Marshal(taskDTO)
+	if err != nil {
+		return nil
+	}
 	err = ch.PublishWithContext(ctx,
-		"",     // exchange
-		q.Name, // routing key
-		false,  // mandatory
-		false,  // immediate
+		"tasks-exchange", // exchange
+		queue.Name,       // routing key
+		false,            // mandatory
+		false,            // immediate
 		amqp.Publishing{
 			ContentType: "text/plain",
-			Body:        []byte(body),
+			Body:        body,
 		})
 	if err != nil {
 		log.Println("error while commiting transaction in taskRepository.getById() method : ", err)

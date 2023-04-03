@@ -44,4 +44,5 @@ require (
 	github.com/gofrs/uuid v4.4.0+incompatible // indirect
 	github.com/huandu/xstrings v1.3.2 // indirect
 	github.com/rabbitmq/amqp091-go v1.7.0 // indirect
+	github.com/wagslane/go-rabbitmq v0.12.3
 )

@@ -203,7 +203,7 @@ func (c TaskService) SendToQueue(taskDTO dto.TaskDTO) error {
 	return nil
 }
 
-func (c TaskService) ReceiveFromQueue(taskDTO dto.TaskDTO) error {
+func (c TaskService) ReceiveFromQueue(message string) error {
 	//receive taskDto
 	//make http request
 	//handle response from http request

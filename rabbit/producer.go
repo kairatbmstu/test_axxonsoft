@@ -1,19 +1,12 @@
 package rabbit
 
 import (
-	"context"
-	"fmt"
 	"log"
-	"os"
-	"os/signal"
-	"syscall"
 
 	rabbitmq "github.com/wagslane/go-rabbitmq"
 )
 
-var publisher *rabbitmq.Publisher
-
-func InitProducer() {
+func (r RabbitContext) initPublisher() {
 	conn, err := rabbitmq.NewConn(
 		"amqp://guest:guest@localhost",
 		rabbitmq.WithConnectionOptionsLogging,
@@ -23,7 +16,7 @@ func InitProducer() {
 	}
 	defer conn.Close()
 
-	publisher, err = rabbitmq.NewPublisher(
+	publisher, err := rabbitmq.NewPublisher(
 		conn,
 		rabbitmq.WithPublisherOptionsLogging,
 		rabbitmq.WithPublisherOptionsExchangeName("events"),
@@ -32,44 +25,20 @@ func InitProducer() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer publisher.Close()
 
-	publisher.NotifyReturn(func(r rabbitmq.Return) {
-		log.Printf("message returned from server: %s", string(r.Body))
-	})
-
-	publisher.NotifyPublish(func(c rabbitmq.Confirmation) {
-		log.Printf("message confirmed from server. tag: %v, ack: %v", c.DeliveryTag, c.Ack)
-	})
-
-	// block main thread - wait for shutdown signal
-	sigs := make(chan os.Signal, 1)
-	done := make(chan bool, 1)
-
-	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
-
-	go func() {
-		sig := <-sigs
-		fmt.Println()
-		fmt.Println(sig)
-		done <- true
-	}()
-
-	fmt.Println("awaiting signal")
-
+	r.Publisher = publisher
 }
 
-func SendMessage(message string) {
-	err := publisher.PublishWithContext(
-		context.Background(),
+func (r RabbitContext) ClosePublisher() {
+	defer r.Publisher.Close()
+}
+
+func (r RabbitContext) SendTask(message string) error {
+	err := r.Publisher.Publish(
 		[]byte(message),
-		[]string{"my_routing_key"},
+		[]string{"task_routing_key"},
 		rabbitmq.WithPublishOptionsContentType("application/json"),
-		rabbitmq.WithPublishOptionsMandatory,
-		rabbitmq.WithPublishOptionsPersistentDelivery,
-		rabbitmq.WithPublishOptionsExchange("events"),
+		rabbitmq.WithPublishOptionsExchange("task_exchange"),
 	)
-	if err != nil {
-		log.Println(err)
-	}
+	return err
 }

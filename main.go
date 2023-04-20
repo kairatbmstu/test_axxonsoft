@@ -7,6 +7,8 @@ import (
 
 	"example.com/test_axxonsoft/v2/controller"
 	"example.com/test_axxonsoft/v2/database"
+	"example.com/test_axxonsoft/v2/rabbit"
+	"example.com/test_axxonsoft/v2/service"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
@@ -45,6 +47,11 @@ func main() {
 
 	router.GET("/task/:id", controller.GetTask)
 	router.POST("/task", controller.PostTask)
+
+	var rabbitContext = rabbit.InitRabbitContext()
+	rabbitContext.TaskHandler = func(message string) error {
+		return service.TaskServiceInst.ReceiveFromQueue(message)
+	}
 
 	router.Run(":8080")
 }

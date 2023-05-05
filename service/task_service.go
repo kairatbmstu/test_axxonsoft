@@ -1,21 +1,14 @@
 package service
 
 import (
-	"context"
-	"encoding/json"
 	"log"
-	"time"
 
 	"example.com/test_axxonsoft/v2/database"
 	"example.com/test_axxonsoft/v2/domain"
 	"example.com/test_axxonsoft/v2/dto"
-	"example.com/test_axxonsoft/v2/rabbit"
 	"example.com/test_axxonsoft/v2/repository"
 	"github.com/gofrs/uuid"
-	amqp "github.com/rabbitmq/amqp091-go"
 )
-
-var TaskServiceInst = TaskService{}
 
 type TaskService struct {
 	TaskRepository   repository.TaskRepository
@@ -23,7 +16,7 @@ type TaskService struct {
 	TaskMapper       TaskMapper
 }
 
-func (t TaskService) GetById(id uuid.UUID) (*dto.TaskDTO, error) {
+func (t *TaskService) GetById(id uuid.UUID) (*dto.TaskDTO, error) {
 
 	tx, err := database.DB.Begin()
 	if err != nil {
@@ -34,20 +27,14 @@ func (t TaskService) GetById(id uuid.UUID) (*dto.TaskDTO, error) {
 
 	if err != nil {
 		log.Println("error calling taskRepository.getById() method: ", err)
-		err := tx.Rollback()
-		if err != nil {
-			log.Println("error while rolling back transaction in taskRepository.getById() method : ", err)
-		}
+		tx.Rollback()
 		return nil, err
 	}
 
 	requestHeaders, err := t.HeaderRepository.GetRequestHeaders(tx, id)
 	if err != nil {
 		log.Println("error calling taskRepository.GetRequestHeaders() method: ", err)
-		err := tx.Rollback()
-		if err != nil {
-			log.Println("error while rolling back transaction in taskRepository.getById() method : ", err)
-		}
+		tx.Rollback()
 		return nil, err
 	}
 	task.RequestHeaders = *requestHeaders
@@ -55,10 +42,7 @@ func (t TaskService) GetById(id uuid.UUID) (*dto.TaskDTO, error) {
 	responseHeaders, err := t.HeaderRepository.GetResponseHeaders(tx, id)
 	if err != nil {
 		log.Println("error calling taskRepository.GetResponseHeaders() method: ", err)
-		err := tx.Rollback()
-		if err != nil {
-			log.Println("error while rolling back transaction in taskRepository.getById() method : ", err)
-		}
+		tx.Rollback()
 		return nil, err
 	}
 	task.ResponseHeaders = *responseHeaders
@@ -69,28 +53,25 @@ func (t TaskService) GetById(id uuid.UUID) (*dto.TaskDTO, error) {
 		return nil, err
 	}
 
-	var taskDto = t.TaskMapper.MapToDto(*task)
-	return &taskDto, nil
+	var taskDto = t.TaskMapper.MapToDto(task)
+	return taskDto, nil
 }
 
 // Create New Task entity
-func (c TaskService) CreateNewTask(taskDTO dto.TaskDTO) (*dto.TaskDTO, error) {
+func (c *TaskService) CreateNewTask(taskDTO *dto.TaskDTO) (*dto.TaskDTO, error) {
 	tx, err := database.DB.Begin()
 	if err != nil {
 		log.Println("error while opening transaction taskRepository.getById() method: ", err)
 		return nil, err
 	}
 
-	taskDTO.TaskStatus = domain.TaskStatus_NEW
+	taskDTO.TaskStatus = domain.TaskStatusNew
 	task := c.TaskMapper.MapToEntity(taskDTO)
-	err = c.TaskRepository.Create(tx, &task)
+	err = c.TaskRepository.Create(tx, task)
 
 	if err != nil {
 		log.Println("error calling taskRepository.getById() method: ", err)
-		err := tx.Rollback()
-		if err != nil {
-			log.Println("error while rolling back transaction in taskRepository.getById() method : ", err)
-		}
+		tx.Rollback()
 		return nil, err
 	}
 
@@ -98,10 +79,7 @@ func (c TaskService) CreateNewTask(taskDTO dto.TaskDTO) (*dto.TaskDTO, error) {
 		err := c.HeaderRepository.Create(tx, &header)
 		if err != nil {
 			log.Println("error calling taskRepository.getById() method: ", err)
-			err := tx.Rollback()
-			if err != nil {
-				log.Println("error while rolling back transaction in taskRepository.getById() method : ", err)
-			}
+			tx.Rollback()
 			return nil, err
 		}
 	}
@@ -114,96 +92,32 @@ func (c TaskService) CreateNewTask(taskDTO dto.TaskDTO) (*dto.TaskDTO, error) {
 
 	var taskDto = c.TaskMapper.MapToDto(task)
 
-	err = c.SendToQueue(taskDto)
+	return taskDto, nil
+}
 
+func (c *TaskService) SendToQueue(taskDTO *dto.TaskDTO) (*dto.TaskDTO, error) {
+
+	tx, err := database.DB.Begin()
 	if err != nil {
-		log.Println("error while sending  taskDto in tasks-queue : ", err)
+		log.Println("error while opening transaction taskRepository.getById() method: ", err)
 		return nil, err
 	}
 
-	return &taskDto, nil
-}
-
-func (c TaskService) SendToQueue(taskDTO dto.TaskDTO) error {
-	conn, err := rabbit.GetConnection()
-	if err != nil {
-		return err
-	}
-	ch, err := conn.Channel()
-	if err != nil {
-		return err
-	}
-	defer ch.Close()
-	defer conn.Close()
-
-	queue, err := ch.QueueDeclare(
-		"tasks-queue", // name
-		false,         // durable
-		false,         // delete when unused
-		false,         // exclusive
-		false,         // no-wait
-		nil,           // arguments
-	)
-	if err != nil {
-		log.Println("  : ", err)
-		return nil
-	}
-
-	err = ch.ExchangeDeclare(
-		"tasks-exchange", // name
-		"direct",         // type
-		true,             // durable
-		false,            // auto-deleted
-		false,            // internal
-		false,            // no-wait
-		nil,              // arguments
-	)
-
-	if err != nil {
-		log.Println(" : ", err)
-		return nil
-	}
-
-	err = ch.QueueBind(
-		queue.Name,       // queue name
-		"",               // routing key
-		"tasks-exchange", // exchange
-		false,
-		nil)
-
-	if err != nil {
-		log.Println(" : ", err)
-		return nil
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	body, err := json.Marshal(taskDTO)
-	if err != nil {
-		return nil
-	}
-	err = ch.PublishWithContext(ctx,
-		"tasks-exchange", // exchange
-		queue.Name,       // routing key
-		false,            // mandatory
-		false,            // immediate
-		amqp.Publishing{
-			ContentType: "text/plain",
-			Body:        body,
-		})
-	if err != nil {
-		log.Println("error while commiting transaction in taskRepository.getById() method : ", err)
-		return nil
-	}
-	log.Printf(" [x] Sent %s\n", body)
-
 	// save and change task status to in_process
+	taskDTO.TaskStatus = domain.TaskStatusInProcess
+	var task = c.TaskMapper.MapToEntity(taskDTO)
+	c.TaskRepository.Update(tx, task)
+
+	err = tx.Commit()
+	if err != nil {
+		log.Println("error while commiting transaction in taskRepository.CreateNewTask() method : ", err)
+		return nil, err
+	}
 	// send taskDto to Queue
-	return nil
+	return taskDTO, nil
 }
 
-func (c TaskService) ReceiveFromQueue(message string) error {
+func (c *TaskService) ReceiveFromQueue(taskDTO dto.TaskDTO) error {
 	//receive taskDto
 	//make http request
 	//handle response from http request
@@ -215,7 +129,7 @@ func (c TaskService) ReceiveFromQueue(message string) error {
 }
 
 // Saves Response received from http request
-func (c TaskService) SaveResponse(taskDTO dto.TaskDTO) (*dto.TaskDTO, error) {
+func (c *TaskService) SaveResponse(taskDTO *dto.TaskDTO) (*dto.TaskDTO, error) {
 	tx, err := database.DB.Begin()
 	if err != nil {
 		log.Println("error while opening transaction taskRepository.getById() method: ", err)
@@ -223,7 +137,7 @@ func (c TaskService) SaveResponse(taskDTO dto.TaskDTO) (*dto.TaskDTO, error) {
 	}
 
 	taskEntity := c.TaskMapper.MapToEntity(taskDTO)
-	err = c.TaskRepository.Update(tx, &taskEntity)
+	err = c.TaskRepository.Update(tx, taskEntity)
 
 	if err != nil {
 		log.Println("error calling taskRepository.getById() method: ", err)
@@ -253,10 +167,10 @@ func (c TaskService) SaveResponse(taskDTO dto.TaskDTO) (*dto.TaskDTO, error) {
 	}
 
 	var taskDto = c.TaskMapper.MapToDto(taskEntity)
-	return &taskDto, nil
+	return taskDto, nil
 }
 
-func (c TaskService) ChangeTaskStatus(taskDTO dto.TaskDTO) error {
+func (c *TaskService) ChangeTaskStatus(taskDTO *dto.TaskDTO) error {
 
 	tx, err := database.DB.Begin()
 	if err != nil {
@@ -265,7 +179,7 @@ func (c TaskService) ChangeTaskStatus(taskDTO dto.TaskDTO) error {
 	}
 
 	taskEntity := c.TaskMapper.MapToEntity(taskDTO)
-	err = c.TaskRepository.ChangeTaskStatus(tx, &taskEntity)
+	err = c.TaskRepository.ChangeTaskStatus(tx, taskEntity)
 
 	if err != nil {
 		log.Println("error while commiting transaction in taskRepository.getById() method : ", err)
@@ -285,7 +199,7 @@ func (c TaskService) ChangeTaskStatus(taskDTO dto.TaskDTO) error {
 type TaskMapper struct {
 }
 
-func (tm TaskMapper) MapToDto(task domain.Task) dto.TaskDTO {
+func (tm *TaskMapper) MapToDto(task *domain.Task) *dto.TaskDTO {
 	var taskDto = dto.TaskDTO{
 		Id:             task.Id,
 		Method:         task.Method,
@@ -307,10 +221,10 @@ func (tm TaskMapper) MapToDto(task domain.Task) dto.TaskDTO {
 		taskDto.ResponseHeaders[header.Name] = header.Value
 	}
 
-	return taskDto
+	return &taskDto
 }
 
-func (tm TaskMapper) MapToEntity(taskDTO dto.TaskDTO) domain.Task {
+func (tm *TaskMapper) MapToEntity(taskDTO *dto.TaskDTO) *domain.Task {
 	var task = domain.Task{
 		HttpStatusCode: taskDTO.HttpStatusCode,
 		Method:         taskDTO.Method,
@@ -337,5 +251,5 @@ func (tm TaskMapper) MapToEntity(taskDTO dto.TaskDTO) domain.Task {
 		task.ResponseHeaders = append(task.ResponseHeaders, header)
 	}
 
-	return task
+	return &task
 }

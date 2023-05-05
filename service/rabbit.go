@@ -1,13 +1,15 @@
 package service
 
 import (
+	"encoding/json"
 	"log"
 
+	"example.com/test_axxonsoft/v2/dto"
 	amqp "github.com/rabbitmq/amqp091-go"
 	rabbitmq "github.com/wagslane/go-rabbitmq"
 )
 
-func GetConnection() (*amqp.Connection, error) {
+func GetRabbitConnection() (*amqp.Connection, error) {
 	conn, err := amqp.Dial("amqp://guest:guest@localhost:5672/")
 	failOnError(err, "Failed to connect to RabbitMQ")
 	return conn, err
@@ -19,12 +21,10 @@ func failOnError(err error, msg string) {
 	}
 }
 
-type MessageHandler func(message string) error
-
 type RabbitContext struct {
 	Publisher   *rabbitmq.Publisher
 	Consumer    *rabbitmq.Consumer
-	TaskHandler MessageHandler
+	TaskService *TaskService
 }
 
 func InitRabbitContext() *RabbitContext {
@@ -34,8 +34,11 @@ func InitRabbitContext() *RabbitContext {
 	return rabbitContext
 }
 
+func (r *RabbitContext) TaskHandler(taskDto dto.TaskDTO) error {
+	return r.TaskService.ReceiveFromQueue(taskDto)
+}
 
-func (r RabbitContext) initPublisher() {
+func (r *RabbitContext) initPublisher() {
 	conn, err := rabbitmq.NewConn(
 		"amqp://guest:guest@localhost",
 		rabbitmq.WithConnectionOptionsLogging,
@@ -48,7 +51,7 @@ func (r RabbitContext) initPublisher() {
 	publisher, err := rabbitmq.NewPublisher(
 		conn,
 		rabbitmq.WithPublisherOptionsLogging,
-		rabbitmq.WithPublisherOptionsExchangeName("events"),
+		rabbitmq.WithPublisherOptionsExchangeName("task_exchange"),
 		rabbitmq.WithPublisherOptionsExchangeDeclare,
 	)
 	if err != nil {
@@ -72,8 +75,6 @@ func (r RabbitContext) SendTask(message string) error {
 	return err
 }
 
-
-
 func (r RabbitContext) initTaskConsumer() {
 	conn, err := rabbitmq.NewConn(
 		"amqp://guest:guest@localhost",
@@ -89,7 +90,10 @@ func (r RabbitContext) initTaskConsumer() {
 		func(d rabbitmq.Delivery) rabbitmq.Action {
 			log.Printf("consumed: %v", string(d.Body))
 			// rabbitmq.Ack, rabbitmq.NackDiscard, rabbitmq.NackRequeue
-			err := r.TaskHandler(string(d.Body))
+			var taskDto = dto.TaskDTO{}
+			var taskJson = string(d.Body)
+			json.Unmarshal([]byte(taskJson), &taskDto)
+			err := r.TaskHandler(taskDto)
 			if err != nil {
 				log.Printf("error happened while calling message handler: %v", err.Error())
 				return rabbitmq.NackDiscard

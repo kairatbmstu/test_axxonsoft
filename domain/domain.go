@@ -28,8 +28,8 @@ type Header struct {
 type TaskStatus string
 
 const (
-	TaskStatus_NEW        TaskStatus = "new"
-	TaskStatus_IN_PROCESS TaskStatus = "in_process"
-	TaskStatus_DONE       TaskStatus = "done"
-	TaskStatus_ERROR      TaskStatus = "error"
+	TaskStatusNew       TaskStatus = "new"
+	TaskStatusInProcess TaskStatus = "in_process"
+	TaskStatusDone      TaskStatus = "done"
+	TaskStatusError     TaskStatus = "error"
 )

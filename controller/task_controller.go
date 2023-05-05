@@ -10,7 +10,12 @@ import (
 	"github.com/gofrs/uuid"
 )
 
-func PostTask(c *gin.Context) {
+type TaskController struct {
+	TaskService   service.TaskService
+	RabbitContext service.RabbitContext
+}
+
+func (t *TaskController) PostTask(c *gin.Context) {
 	var taskDto = dto.TaskDTO{}
 	if err := c.BindJSON(&taskDto); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -20,7 +25,16 @@ func PostTask(c *gin.Context) {
 		return
 	}
 
-	taskResultDto, err := service.TaskServiceInst.CreateNewTask(taskDto)
+	taskResultDto, err := t.TaskService.CreateNewTask(&taskDto)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":        "internal_server_error",
+			"errorMessage": err.Error(),
+		})
+	}
+
+	taskResultDto, err = t.TaskService.SendToQueue(taskResultDto)
 
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -32,7 +46,7 @@ func PostTask(c *gin.Context) {
 	c.JSON(200, taskResultDto)
 }
 
-func GetTask(c *gin.Context) {
+func (t *TaskController) GetTask(c *gin.Context) {
 	var id = c.Params.ByName("id")
 	fmt.Println("id : " + id)
 	uid, err := uuid.FromString(id)
@@ -42,7 +56,7 @@ func GetTask(c *gin.Context) {
 			"errorMessage": err.Error(),
 		})
 	}
-	task, err := service.TaskServiceInst.GetById(uid)
+	task, err := t.TaskService.GetById(uid)
 
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{

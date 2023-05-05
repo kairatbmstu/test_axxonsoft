@@ -6,7 +6,6 @@ import (
 	rabbitmq "github.com/wagslane/go-rabbitmq"
 )
 
-type MessageHandler func(message string) error
 
 func (r RabbitContext) initTaskConsumer() {
 	conn, err := rabbitmq.NewConn(

@@ -19,6 +19,8 @@ func failOnError(err error, msg string) {
 	}
 }
 
+type MessageHandler func(message string) error
+
 type RabbitContext struct {
 	Publisher   *rabbitmq.Publisher
 	Consumer    *rabbitmq.Consumer

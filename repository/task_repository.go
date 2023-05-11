@@ -103,11 +103,11 @@ func (t TaskRepository) Update(tx *sql.Tx, task *domain.Task) error {
 }
 
 // Change task status
-func (t TaskRepository) ChangeTaskStatus(tx *sql.Tx, task *domain.Task) error {
+func (t TaskRepository) ChangeTaskStatus(tx *sql.Tx, taskId uuid.UUID, taskStatus domain.TaskStatus) error {
 	sb := sqlbuilder.PostgreSQL.NewUpdateBuilder()
 	sb.Update("task").
-		Set(sb.Equal("task_status", task.TaskStatus)).
-		Where(sb.Equal("id", task.Id))
+		Set(sb.Equal("task_status", taskStatus)).
+		Where(sb.Equal("id", taskId))
 	query, args := sb.Build()
 	_, err := tx.Exec(query, args...)
 	if err != nil {

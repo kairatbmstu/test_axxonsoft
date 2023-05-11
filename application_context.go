@@ -20,10 +20,13 @@ func BuildApplicationContext() *ApplicationContext {
 	appContext.TaskService = &taskService
 	var headerRepository = repository.HeaderRepository{}
 	var taskRepository = repository.TaskRepository{}
-	appContext.TaskService.HeaderRepository = headerRepository
-	appContext.TaskService.TaskRepository = taskRepository
+	appContext.TaskService.HeaderRepository = &headerRepository
+	appContext.TaskService.TaskRepository = &taskRepository
 	var taskController = controller.TaskController{}
+	taskController.RabbitContext = appContext.RabbitContext
+	taskController.TaskService = &taskService
 	appContext.TaskController = &taskController
+	appContext.TaskService.RabbitContext = appContext.RabbitContext
 	return &appContext
 }
 

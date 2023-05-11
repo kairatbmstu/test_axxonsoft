@@ -11,8 +11,9 @@ import (
 )
 
 type TaskService struct {
-	TaskRepository   repository.TaskRepository
-	HeaderRepository repository.HeaderRepository
+	TaskRepository   *repository.TaskRepository
+	HeaderRepository *repository.HeaderRepository
+	RabbitContext    *RabbitContext
 	TaskMapper       TaskMapper
 }
 
@@ -114,10 +115,12 @@ func (c *TaskService) SendToQueue(taskDTO *dto.TaskDTO) (*dto.TaskDTO, error) {
 		return nil, err
 	}
 	// send taskDto to Queue
+	c.RabbitContext.SendTask(taskDTO)
 	return taskDTO, nil
 }
 
 func (c *TaskService) ReceiveFromQueue(taskDTO dto.TaskDTO) error {
+	log.Println("received taskDto : ", taskDTO)
 	//receive taskDto
 	//make http request
 	//handle response from http request
@@ -179,7 +182,7 @@ func (c *TaskService) ChangeTaskStatus(taskDTO *dto.TaskDTO) error {
 	}
 
 	taskEntity := c.TaskMapper.MapToEntity(taskDTO)
-	err = c.TaskRepository.ChangeTaskStatus(tx, taskEntity)
+	err = c.TaskRepository.ChangeTaskStatus(tx, taskEntity.Id, taskEntity.TaskStatus)
 
 	if err != nil {
 		log.Println("error while commiting transaction in taskRepository.getById() method : ", err)

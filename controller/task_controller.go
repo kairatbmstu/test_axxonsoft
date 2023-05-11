@@ -11,8 +11,8 @@ import (
 )
 
 type TaskController struct {
-	TaskService   service.TaskService
-	RabbitContext service.RabbitContext
+	TaskService   *service.TaskService
+	RabbitContext *service.RabbitContext
 }
 
 func (t *TaskController) PostTask(c *gin.Context) {

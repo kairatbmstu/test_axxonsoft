@@ -46,7 +46,7 @@ func (r *RabbitContext) initPublisher() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer conn.Close()
+	//defer conn.Close()
 
 	publisher, err := rabbitmq.NewPublisher(
 		conn,
@@ -63,15 +63,25 @@ func (r *RabbitContext) initPublisher() {
 
 func (r RabbitContext) ClosePublisher() {
 	defer r.Publisher.Close()
+	defer r.Consumer.Close()
 }
 
-func (r RabbitContext) SendTask(message string) error {
-	err := r.Publisher.Publish(
-		[]byte(message),
+func (r RabbitContext) SendTask(taskDTO *dto.TaskDTO) error {
+	message, err := json.Marshal(taskDTO)
+	if err != nil {
+		log.Println("error occured when serializing taskDTO : ", err.Error())
+		return err
+	}
+	err = r.Publisher.Publish(
+		message,
 		[]string{"task_routing_key"},
 		rabbitmq.WithPublishOptionsContentType("application/json"),
 		rabbitmq.WithPublishOptionsExchange("task_exchange"),
 	)
+	if err != nil {
+		log.Println("error occured when sending taskDTO : ", err.Error())
+		return err
+	}
 	return err
 }
 
@@ -83,7 +93,6 @@ func (r RabbitContext) initTaskConsumer() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer conn.Close()
 
 	consumer, err := rabbitmq.NewConsumer(
 		conn,

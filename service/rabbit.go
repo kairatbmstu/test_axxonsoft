@@ -34,7 +34,7 @@ func InitRabbitContext() *RabbitContext {
 	return rabbitContext
 }
 
-func (r *RabbitContext) TaskHandler(taskDto dto.TaskDTO) error {
+func (r *RabbitContext) TaskHandler(taskDto *dto.TaskDTO) error {
 	return r.TaskService.ReceiveFromQueue(taskDto)
 }
 
@@ -102,7 +102,7 @@ func (r RabbitContext) initTaskConsumer() {
 			var taskDto = dto.TaskDTO{}
 			var taskJson = string(d.Body)
 			json.Unmarshal([]byte(taskJson), &taskDto)
-			err := r.TaskHandler(taskDto)
+			err := r.TaskHandler(&taskDto)
 			if err != nil {
 				log.Printf("error happened while calling message handler: %v", err.Error())
 				return rabbitmq.NackDiscard

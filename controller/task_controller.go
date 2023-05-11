@@ -2,8 +2,10 @@ package controller
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 
+	"example.com/test_axxonsoft/v2/domain"
 	"example.com/test_axxonsoft/v2/dto"
 	"example.com/test_axxonsoft/v2/service"
 	"github.com/gin-gonic/gin"
@@ -37,6 +39,19 @@ func (t *TaskController) PostTask(c *gin.Context) {
 	taskResultDto, err = t.TaskService.SendToQueue(taskResultDto)
 
 	if err != nil {
+		log.Println("error occured when sendToQueue : ", err.Error())
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":        "internal_server_error",
+			"errorMessage": err.Error(),
+		})
+	}
+
+	taskResultDto.TaskStatus = domain.TaskStatusInProcess
+
+	err = t.TaskService.ChangeTaskStatus(taskResultDto)
+
+	if err != nil {
+		log.Println("error occured when change taskDto : ", err.Error())
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error":        "internal_server_error",
 			"errorMessage": err.Error(),

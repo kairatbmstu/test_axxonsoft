@@ -6,6 +6,7 @@ import (
 	"example.com/test_axxonsoft/v2/database"
 	"example.com/test_axxonsoft/v2/domain"
 	"example.com/test_axxonsoft/v2/dto"
+	"example.com/test_axxonsoft/v2/external"
 	"example.com/test_axxonsoft/v2/repository"
 	"github.com/gofrs/uuid"
 )
@@ -15,6 +16,7 @@ type TaskService struct {
 	HeaderRepository *repository.HeaderRepository
 	RabbitContext    *RabbitContext
 	TaskMapper       TaskMapper
+	TaskClient       external.TaskClient
 }
 
 func (t *TaskService) GetById(id uuid.UUID) (*dto.TaskDTO, error) {
@@ -119,7 +121,7 @@ func (c *TaskService) SendToQueue(taskDTO *dto.TaskDTO) (*dto.TaskDTO, error) {
 	return taskDTO, nil
 }
 
-func (c *TaskService) ReceiveFromQueue(taskDTO dto.TaskDTO) error {
+func (c *TaskService) ReceiveFromQueue(taskDTO *dto.TaskDTO) error {
 	log.Println("received taskDto : ", taskDTO)
 	//receive taskDto
 	//make http request
@@ -128,11 +130,29 @@ func (c *TaskService) ReceiveFromQueue(taskDTO dto.TaskDTO) error {
 	//save response with task status error
 	//if http status ~ 2xx
 	//save response with task status done
+	var request = external.HttpRequest{
+		Method:         taskDTO.Method,
+		Url:            taskDTO.Url,
+		RequestBody:    taskDTO.RequestBody,
+		RequestHeaders: taskDTO.RequestHeaders,
+	}
+	response, err := c.TaskClient.DoHttpRequest(&request)
+	if err != nil {
+		log.Println(" Error occured when doing http request : ", err.Error())
+		taskDTO.TaskStatus = domain.TaskStatusError
+		return err
+	}
+
+	taskDTO.ResponseBody = response.ResponseBody
+	taskDTO.ResponseHeaders = response.ResponseHeaders
+	taskDTO.HttpStatusCode = response.Status
+	taskDTO.TaskStatus = domain.TaskStatusDone
+	c.Update(taskDTO)
 	return nil
 }
 
 // Saves Response received from http request
-func (c *TaskService) SaveResponse(taskDTO *dto.TaskDTO) (*dto.TaskDTO, error) {
+func (c *TaskService) Update(taskDTO *dto.TaskDTO) (*dto.TaskDTO, error) {
 	tx, err := database.DB.Begin()
 	if err != nil {
 		log.Println("error while opening transaction taskRepository.getById() method: ", err)

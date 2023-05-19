@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
+	"strings"
 
 	"example.com/test_axxonsoft/v2/domain"
 	"example.com/test_axxonsoft/v2/dto"
@@ -14,17 +16,25 @@ import (
 
 type TaskController struct {
 	TaskService   *service.TaskService
-	RabbitContext *service.RabbitContext
+	TaskValidator *TaskValidator
 }
 
 func (t *TaskController) PostTask(c *gin.Context) {
 	var taskDto = dto.TaskDTO{}
-	if err := c.BindJSON(&taskDto); err != nil {
+	if err := c.ShouldBindJSON(&taskDto); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error":        "bad_request",
 			"errorMessage": err.Error(),
 		})
 		return
+	}
+
+	var error = t.TaskValidator.validate(&taskDto)
+
+	if error.HasErrors {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"errors": error.Errors,
+		})
 	}
 
 	taskResultDto, err := t.TaskService.CreateNewTask(&taskDto)
@@ -81,4 +91,42 @@ func (t *TaskController) GetTask(c *gin.Context) {
 	}
 
 	c.JSON(200, task)
+}
+
+type TaskValidator struct {
+}
+
+func (t TaskValidator) validate(taskDto *dto.TaskDTO) *dto.ErrorDTO {
+	taskDto.Method = strings.TrimSpace(taskDto.Method)
+
+	var errors = new(dto.ErrorDTO)
+	errors.HasErrors = false
+	if len(taskDto.Method) == 0 {
+		errors.Errors = append(errors.Errors, "Method field is required")
+		errors.HasErrors = true
+	}
+
+	if len(taskDto.Method) > 0 {
+		if !(strings.EqualFold(taskDto.Method, "GET") || strings.EqualFold(taskDto.Method, "POST") ||
+			strings.EqualFold(taskDto.Method, "PUT") || strings.EqualFold(taskDto.Method, "DELETE") ||
+			strings.EqualFold(taskDto.Method, "HEAD")) {
+			errors.Errors = append(errors.Errors, "Such method is not allowed")
+			errors.HasErrors = true
+		}
+	}
+
+	if !IsUrl(taskDto.Url) {
+		errors.Errors = append(errors.Errors, "URL is not valid")
+		errors.HasErrors = true
+	}
+
+	if errors.HasErrors {
+		return errors
+	}
+	return errors
+}
+
+func IsUrl(str string) bool {
+	u, err := url.Parse(str)
+	return err == nil && u.Scheme != "" && u.Host != ""
 }

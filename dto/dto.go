@@ -7,8 +7,8 @@ import (
 
 type TaskDTO struct {
 	Id              uuid.UUID         `json:"id"`
-	Method          string            `json:"method"`
-	Url             string            `json:"url"`
+	Method          string            `json:"method" binding:"required"`
+	Url             string            `json:"url" binding:"required"`
 	HttpStatusCode  int               `json:"httpStatusCode"`
 	TaskStatus      domain.TaskStatus `json:"taskStatus"`
 	ResponseLength  int               `json:"responseLength"`
@@ -21,4 +21,13 @@ type TaskDTO struct {
 type HeaderDTO struct {
 	Name  string `json:"name"`
 	Value string `json:"value"`
+}
+
+type TaskIdDTO struct {
+	Id uuid.UUID `json:"id"`
+}
+
+type ErrorDTO struct {
+	HasErrors bool
+	Errors    []string
 }

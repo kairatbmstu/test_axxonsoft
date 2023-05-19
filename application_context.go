@@ -15,20 +15,23 @@ type ApplicationContext struct {
 func BuildApplicationContext() *ApplicationContext {
 	var appContext = ApplicationContext{}
 	var taskService = service.TaskService{}
-	var rabbitContext = service.InitRabbitContext()
+
 	var headerRepository = repository.HeaderRepository{}
 	var taskRepository = repository.TaskRepository{}
 	var taskController = controller.TaskController{}
 
-	appContext.RabbitContext = rabbitContext
 	appContext.TaskService = &taskService
 	appContext.TaskService.HeaderRepository = &headerRepository
 	appContext.TaskService.TaskRepository = &taskRepository
-	taskController.RabbitContext = rabbitContext
+
 	taskController.TaskService = &taskService
 	appContext.TaskController = &taskController
+
+	var rabbitContext = service.NewRabbitContext()
+	appContext.RabbitContext = rabbitContext
 	appContext.TaskService.RabbitContext = rabbitContext
 	appContext.RabbitContext.TaskService = &taskService
+	rabbitContext.Init()
 	return &appContext
 }
 

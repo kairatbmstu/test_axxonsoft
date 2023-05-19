@@ -27,11 +27,14 @@ type RabbitContext struct {
 	TaskService *TaskService
 }
 
-func InitRabbitContext() *RabbitContext {
+func NewRabbitContext() *RabbitContext {
 	var rabbitContext = new(RabbitContext)
-	rabbitContext.initTaskConsumer()
-	rabbitContext.initPublisher()
 	return rabbitContext
+}
+
+func (c *RabbitContext) Init() {
+	c.initTaskConsumer()
+	c.initPublisher()
 }
 
 func (r *RabbitContext) TaskHandler(taskDto *dto.TaskDTO) error {

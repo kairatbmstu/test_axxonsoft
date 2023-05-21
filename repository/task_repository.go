@@ -9,6 +9,10 @@ import (
 	sqlbuilder "github.com/huandu/go-sqlbuilder"
 )
 
+const (
+	TASK_UPDATE = `UPDATE task SET method = $1, url = $2, http_status_code = $3, task_status = $4, response_length = $5, request_body = $6, response_body = $7 WHERE id = $8`
+)
+
 type TaskRepository struct {
 }
 
@@ -82,21 +86,22 @@ func (t TaskRepository) Update(tx *sql.Tx, task *domain.Task) error {
 		task.ResponseHeaders[i].ResponseTaskId = &task.Id
 	}
 
-	sb := sqlbuilder.PostgreSQL.NewUpdateBuilder()
-	sb.Update("task").
-		Set(sb.Equal("id", task.Id)).
-		Set(sb.Equal("method", task.Method)).
-		Set(sb.Equal("url", task.Url)).
-		Set(sb.Equal("http_status_code", task.HttpStatusCode)).
-		Set(sb.Equal("task_status", task.TaskStatus)).
-		Set(sb.Equal("response_length", task.ResponseLength)).
-		Set(sb.Equal("request_body", task.RequestBody)).
-		Set(sb.Equal("response_body", task.ResponseBody)).
-		Where(sb.Equal("id", task.Id))
-	query, args := sb.Build()
-	_, err := tx.Exec(query, args...)
+	//sb := sqlbuilder.PostgreSQL.NewUpdateBuilder()
+	// sb.Update("task").
+	// 	Set(sb.Assign("method", task.Method),
+	// 		sb.Assign("url", task.Url),
+	// 		sb.Assign("http_status_code", task.HttpStatusCode),
+	// 		sb.Assign("task_status", task.TaskStatus),
+	// 		sb.Assign("response_length", task.ResponseLength),
+	// 		sb.Assign("request_body", task.RequestBody),
+	// 		sb.Assign("response_body", task.ResponseBody),
+	// 	).
+	// 	Where(sb.Equal("id", task.Id))
+	// query, args := sb.Build()
+	_, err := tx.Exec(TASK_UPDATE, task.Method, task.Url, task.HttpStatusCode, task.TaskStatus,
+		task.ResponseLength, task.RequestBody, "task.ResponseBody", task.Id)
 	if err != nil {
-		log.Println("an error occurred while executing insert statement : ", err.Error())
+		log.Println("an error occurred while executing update statement : ", err.Error())
 		return err
 	}
 	return nil
@@ -106,7 +111,7 @@ func (t TaskRepository) Update(tx *sql.Tx, task *domain.Task) error {
 func (t TaskRepository) ChangeTaskStatus(tx *sql.Tx, taskId uuid.UUID, taskStatus domain.TaskStatus) error {
 	sb := sqlbuilder.PostgreSQL.NewUpdateBuilder()
 	sb.Update("task").
-		Set(sb.Equal("task_status", taskStatus)).
+		Set(sb.Assign("task_status", taskStatus)).
 		Where(sb.Equal("id", taskId))
 	query, args := sb.Build()
 	_, err := tx.Exec(query, args...)

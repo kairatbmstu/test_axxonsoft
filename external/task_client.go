@@ -46,6 +46,6 @@ func (t *TaskClient) DoHttpRequest(HttpRequest *HttpRequest) (*HttpResponse, err
 		return nil, err
 	}
 	httpResponse.ResponseBody = string(responseBody)
-	log.Println("httpResponse: ", httpResponse)
+	//log.Println("httpResponse: ", httpResponse)
 	return &httpResponse, nil
 }

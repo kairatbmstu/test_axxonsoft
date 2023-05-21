@@ -42,7 +42,7 @@ func main() {
 
 	router := gin.Default()
 
-	var appContext = BuildApplicationContext()
+	var appContext = NewApplicationContext()
 
 	defer appContext.Close()
 

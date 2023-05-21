@@ -16,7 +16,7 @@ import (
 
 type TaskController struct {
 	TaskService   *service.TaskService
-	TaskValidator *TaskValidator
+	TaskValidator TaskValidator
 }
 
 func (t *TaskController) PostTask(c *gin.Context) {
@@ -35,15 +35,17 @@ func (t *TaskController) PostTask(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"errors": error.Errors,
 		})
+		return
 	}
 
-	taskResultDto, err := t.TaskService.CreateNewTask(&taskDto)
+	taskResultDto, err := t.TaskService.Create(&taskDto)
 
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error":        "internal_server_error",
 			"errorMessage": err.Error(),
 		})
+		return
 	}
 
 	taskResultDto, err = t.TaskService.SendToQueue(taskResultDto)
@@ -54,6 +56,7 @@ func (t *TaskController) PostTask(c *gin.Context) {
 			"error":        "internal_server_error",
 			"errorMessage": err.Error(),
 		})
+		return
 	}
 
 	taskResultDto.TaskStatus = domain.TaskStatusInProcess
@@ -66,6 +69,7 @@ func (t *TaskController) PostTask(c *gin.Context) {
 			"error":        "internal_server_error",
 			"errorMessage": err.Error(),
 		})
+		return
 	}
 
 	c.JSON(200, taskResultDto)
@@ -110,7 +114,7 @@ func (t TaskValidator) validate(taskDto *dto.TaskDTO) *dto.ErrorDTO {
 		if !(strings.EqualFold(taskDto.Method, "GET") || strings.EqualFold(taskDto.Method, "POST") ||
 			strings.EqualFold(taskDto.Method, "PUT") || strings.EqualFold(taskDto.Method, "DELETE") ||
 			strings.EqualFold(taskDto.Method, "HEAD")) {
-			errors.Errors = append(errors.Errors, "Such method is not allowed")
+			errors.Errors = append(errors.Errors, "method is not allowed")
 			errors.HasErrors = true
 		}
 	}

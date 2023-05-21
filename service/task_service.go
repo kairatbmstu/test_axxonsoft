@@ -61,7 +61,7 @@ func (t *TaskService) GetById(id uuid.UUID) (*dto.TaskDTO, error) {
 }
 
 // Create New Task entity
-func (c *TaskService) CreateNewTask(taskDTO *dto.TaskDTO) (*dto.TaskDTO, error) {
+func (c *TaskService) Create(taskDTO *dto.TaskDTO) (*dto.TaskDTO, error) {
 	tx, err := database.DB.Begin()
 	if err != nil {
 		log.Println("error while opening transaction taskRepository.getById() method: ", err)
@@ -73,7 +73,7 @@ func (c *TaskService) CreateNewTask(taskDTO *dto.TaskDTO) (*dto.TaskDTO, error) 
 	err = c.TaskRepository.Create(tx, task)
 
 	if err != nil {
-		log.Println("error calling taskRepository.getById() method: ", err)
+		log.Println("error while calling taskRepository.Create() method: ", err)
 		tx.Rollback()
 		return nil, err
 	}
@@ -81,7 +81,7 @@ func (c *TaskService) CreateNewTask(taskDTO *dto.TaskDTO) (*dto.TaskDTO, error) 
 	for _, header := range task.RequestHeaders {
 		err := c.HeaderRepository.Create(tx, &header)
 		if err != nil {
-			log.Println("error calling taskRepository.getById() method: ", err)
+			log.Println("error while calling headerRepository.Create() method: ", err)
 			tx.Rollback()
 			return nil, err
 		}
@@ -90,6 +90,7 @@ func (c *TaskService) CreateNewTask(taskDTO *dto.TaskDTO) (*dto.TaskDTO, error) 
 	err = tx.Commit()
 	if err != nil {
 		log.Println("error while commiting transaction in taskRepository.CreateNewTask() method : ", err)
+		tx.Rollback()
 		return nil, err
 	}
 
@@ -102,7 +103,7 @@ func (c *TaskService) SendToQueue(taskDTO *dto.TaskDTO) (*dto.TaskDTO, error) {
 
 	tx, err := database.DB.Begin()
 	if err != nil {
-		log.Println("error while opening transaction taskRepository.getById() method: ", err)
+		log.Println("error while opening transaction taskRepository.SendToQueue() method: ", err)
 		return nil, err
 	}
 
@@ -113,9 +114,11 @@ func (c *TaskService) SendToQueue(taskDTO *dto.TaskDTO) (*dto.TaskDTO, error) {
 
 	err = tx.Commit()
 	if err != nil {
-		log.Println("error while commiting transaction in taskRepository.CreateNewTask() method : ", err)
+		log.Println("error while commiting transaction in taskRepository.SendToQueue() method : ", err)
+		tx.Rollback()
 		return nil, err
 	}
+
 	// send taskDto to Queue
 	c.RabbitContext.SendTask(taskDTO)
 	return taskDTO, nil
@@ -123,13 +126,6 @@ func (c *TaskService) SendToQueue(taskDTO *dto.TaskDTO) (*dto.TaskDTO, error) {
 
 func (c *TaskService) ReceiveFromQueue(taskDTO *dto.TaskDTO) error {
 	log.Println("received taskDto : ", taskDTO)
-	//receive taskDto
-	//make http request
-	//handle response from http request
-	//if http ~ 4xx or 5xx
-	//save response with task status error
-	//if http status ~ 2xx
-	//save response with task status done
 	var request = external.HttpRequest{
 		Method:         taskDTO.Method,
 		Url:            taskDTO.Url,
@@ -147,12 +143,18 @@ func (c *TaskService) ReceiveFromQueue(taskDTO *dto.TaskDTO) error {
 	taskDTO.ResponseHeaders = response.ResponseHeaders
 	taskDTO.HttpStatusCode = response.Status
 	taskDTO.TaskStatus = domain.TaskStatusDone
-	c.Update(taskDTO)
+	taskDTO, err = c.Update(taskDTO)
+	if err != nil {
+		log.Println(" Error occured when update task : ", err.Error())
+		taskDTO.TaskStatus = domain.TaskStatusError
+		return err
+	}
 	return nil
 }
 
 // Saves Response received from http request
 func (c *TaskService) Update(taskDTO *dto.TaskDTO) (*dto.TaskDTO, error) {
+	log.Println("update taskDTO : {}", taskDTO)
 	tx, err := database.DB.Begin()
 	if err != nil {
 		log.Println("error while opening transaction taskRepository.getById() method: ", err)

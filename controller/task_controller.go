@@ -11,7 +11,7 @@ import (
 	"example.com/test_axxonsoft/v2/dto"
 	"example.com/test_axxonsoft/v2/service"
 	"github.com/gin-gonic/gin"
-	"github.com/gofrs/uuid"
+	"github.com/google/uuid"
 )
 
 type TaskController struct {
@@ -20,7 +20,7 @@ type TaskController struct {
 }
 
 func (t *TaskController) PostTask(c *gin.Context) {
-	var taskDto = dto.TaskDTO{}
+	var taskDto = new(dto.TaskDTO)
 	if err := c.ShouldBindJSON(&taskDto); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error":        "bad_request",
@@ -29,7 +29,7 @@ func (t *TaskController) PostTask(c *gin.Context) {
 		return
 	}
 
-	var error = t.TaskValidator.validate(&taskDto)
+	var error = t.TaskValidator.validate(taskDto)
 
 	if error.HasErrors {
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -38,7 +38,7 @@ func (t *TaskController) PostTask(c *gin.Context) {
 		return
 	}
 
-	taskResultDto, err := t.TaskService.Create(&taskDto)
+	taskDto, err := t.TaskService.Create(taskDto)
 
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -48,7 +48,7 @@ func (t *TaskController) PostTask(c *gin.Context) {
 		return
 	}
 
-	taskResultDto, err = t.TaskService.SendToQueue(taskResultDto)
+	taskDto, err = t.TaskService.SendToQueue(taskDto)
 
 	if err != nil {
 		log.Println("error occured when sendToQueue : ", err.Error())
@@ -59,9 +59,10 @@ func (t *TaskController) PostTask(c *gin.Context) {
 		return
 	}
 
-	taskResultDto.TaskStatus = domain.TaskStatusInProcess
+	taskDto.TaskStatus = domain.TaskStatusInProcess
 
-	err = t.TaskService.ChangeTaskStatus(taskResultDto)
+	log.Println("taskDto.Id : {} ", taskDto.Id)
+	err = t.TaskService.ChangeTaskStatus(taskDto)
 
 	if err != nil {
 		log.Println("error occured when change taskDto : ", err.Error())
@@ -72,20 +73,24 @@ func (t *TaskController) PostTask(c *gin.Context) {
 		return
 	}
 
-	c.JSON(200, taskResultDto)
+	var taskDtoId = dto.TaskIdDTO{
+		Id: taskDto.Id,
+	}
+
+	c.JSON(200, taskDtoId)
 }
 
 func (t *TaskController) GetTask(c *gin.Context) {
 	var id = c.Params.ByName("id")
 	fmt.Println("id : " + id)
-	uid, err := uuid.FromString(id)
+	uid, err := uuid.Parse(id)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error":        "bad_request",
 			"errorMessage": err.Error(),
 		})
 	}
-	task, err := t.TaskService.GetById(uid)
+	task, err := t.TaskService.GetTaskStatusById(uid)
 
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -94,7 +99,17 @@ func (t *TaskController) GetTask(c *gin.Context) {
 		})
 	}
 
-	c.JSON(200, task)
+	var taskStatusDto = dto.TaskStatusDTO{
+		Id:              task.Id,
+		Method:          task.Method,
+		Url:             task.Url,
+		HttpStatusCode:  task.HttpStatusCode,
+		RequestHeaders:  task.RequestHeaders,
+		TaskStatus:      task.TaskStatus,
+		ResponseHeaders: task.ResponseHeaders,
+	}
+
+	c.JSON(200, taskStatusDto)
 }
 
 type TaskValidator struct {

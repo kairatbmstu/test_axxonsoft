@@ -1,25 +1,11 @@
 package main
 
 import (
+	"example.com/test_axxonsoft/v2/config"
 	"example.com/test_axxonsoft/v2/controller"
 	"example.com/test_axxonsoft/v2/repository"
 	"example.com/test_axxonsoft/v2/service"
 )
-
-type PostrgresConfig struct {
-	Host     string
-	Port     int
-	Username string
-	Password string
-	Database string
-}
-
-type RabbitMqConfig struct {
-	Host     string
-	Port     int
-	Username string
-	Password string
-}
 
 type ApplicationContext struct {
 	TaskController *controller.TaskController
@@ -27,7 +13,7 @@ type ApplicationContext struct {
 	RabbitContext  *service.RabbitContext
 }
 
-func NewApplicationContext() *ApplicationContext {
+func NewApplicationContext(rabbitmqConfig config.RabbitMqConfig) *ApplicationContext {
 	var appContext = ApplicationContext{}
 	var taskService = service.TaskService{}
 
@@ -42,8 +28,10 @@ func NewApplicationContext() *ApplicationContext {
 	taskController.TaskService = &taskService
 	appContext.TaskController = &taskController
 
-	var rabbitContext = service.NewRabbitContext()
+	var rabbitContext = service.NewRabbitContext(rabbitmqConfig)
+
 	appContext.RabbitContext = rabbitContext
+
 	appContext.TaskService.RabbitContext = rabbitContext
 	appContext.RabbitContext.TaskService = &taskService
 	rabbitContext.Init()

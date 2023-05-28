@@ -70,8 +70,6 @@ type TaskStatusDTO struct {
 	Url             string            `json:"url" binding:"required"`
 	HttpStatusCode  int               `json:"httpStatusCode"`
 	TaskStatus      domain.TaskStatus `json:"taskStatus"`
-	ResponseLength  int               `json:"responseLength"`
-	RequestHeaders  map[string]string `json:"requestHeaders"`
-	RequestBody     string            `json:"requestBody"`
-	ResponseHeaders map[string]string `json:"responseHeaders"`
+	ResponseLength  int               `json:"length"`
+	ResponseHeaders map[string]string `json:"headers"`
 }

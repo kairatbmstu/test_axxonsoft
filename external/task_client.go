@@ -4,6 +4,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"unicode/utf8"
 )
 
 /*
@@ -43,6 +44,7 @@ type HttpResponse struct {
 	Status          int
 	ResponseHeaders map[string]string
 	ResponseBody    string
+	ResponseLength  int
 }
 
 /**
@@ -71,6 +73,7 @@ func (t *TaskClient) DoHttpRequest(HttpRequest *HttpRequest) (*HttpResponse, err
 		return nil, err
 	}
 	httpResponse.ResponseBody = string(responseBody)
+	httpResponse.ResponseLength = utf8.RuneCountInString(httpResponse.ResponseBody)
 	//log.Println("httpResponse: ", httpResponse)
 	return &httpResponse, nil
 }

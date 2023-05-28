@@ -121,9 +121,9 @@ func (t *TaskController) GetTask(c *gin.Context) {
 		Method:          task.Method,
 		Url:             task.Url,
 		HttpStatusCode:  task.HttpStatusCode,
-		RequestHeaders:  task.RequestHeaders,
 		TaskStatus:      task.TaskStatus,
 		ResponseHeaders: task.ResponseHeaders,
+		ResponseLength:  task.ResponseLength,
 	}
 
 	c.JSON(200, taskStatusDto)

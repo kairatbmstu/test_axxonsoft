@@ -163,6 +163,7 @@ func (c *TaskService) ReceiveFromQueue(taskDTO *dto.TaskDTO) error {
 	}
 
 	taskDTO.ResponseBody = response.ResponseBody
+	taskDTO.ResponseLength = response.ResponseLength
 	taskDTO.ResponseHeaders = response.ResponseHeaders
 	taskDTO.HttpStatusCode = response.Status
 	taskDTO.TaskStatus = domain.TaskStatusDone
@@ -313,12 +314,6 @@ func (tm *TaskStatusMapper) ToDto(task *domain.Task) *dto.TaskStatusDTO {
 		HttpStatusCode: task.HttpStatusCode,
 		TaskStatus:     task.TaskStatus,
 		ResponseLength: task.ResponseLength,
-		RequestBody:    task.RequestBody,
-	}
-
-	taskStatusDTO.RequestHeaders = make(map[string]string)
-	for _, header := range task.RequestHeaders {
-		taskStatusDTO.RequestHeaders[header.Name] = header.Value
 	}
 
 	taskStatusDTO.ResponseHeaders = make(map[string]string)

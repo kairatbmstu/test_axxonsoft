@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 
+	"example.com/test_axxonsoft/v2/config"
 	"example.com/test_axxonsoft/v2/dto"
 	amqp "github.com/rabbitmq/amqp091-go"
 	rabbitmq "github.com/wagslane/go-rabbitmq"
@@ -22,13 +23,15 @@ func failOnError(err error, msg string) {
 }
 
 type RabbitContext struct {
-	Publisher   *rabbitmq.Publisher
-	Consumer    *rabbitmq.Consumer
-	TaskService *TaskService
+	RabbitMqConfig config.RabbitMqConfig
+	Publisher      *rabbitmq.Publisher
+	Consumer       *rabbitmq.Consumer
+	TaskService    *TaskService
 }
 
-func NewRabbitContext() *RabbitContext {
+func NewRabbitContext(rabbitConfig config.RabbitMqConfig) *RabbitContext {
 	var rabbitContext = new(RabbitContext)
+	rabbitContext.RabbitMqConfig = rabbitConfig
 	return rabbitContext
 }
 

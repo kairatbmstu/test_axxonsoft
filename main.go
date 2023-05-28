@@ -2,9 +2,9 @@ package main
 
 import (
 	"database/sql"
-	"fmt"
 	"log"
 
+	"example.com/test_axxonsoft/v2/config"
 	"example.com/test_axxonsoft/v2/database"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-migrate/migrate/v4"
@@ -12,28 +12,19 @@ import (
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 )
 
-const (
-	host     = "localhost"
-	port     = 5432
-	user     = "test_axxonsoft"
-	password = "123456"
-	dbname   = "test_axxonsoft"
-)
-
 func main() {
+	config.InitEnvConfigs()
 
 	m, err := migrate.New(
 		"file://migrations",
-		"postgres://test_axxonsoft:123456@localhost:5432/test_axxonsoft?sslmode=disable")
+		config.EnvPostgresConfig.GetUrl())
 	if err != nil {
 		log.Fatal(err)
 	}
 	m.Up()
 
-	psqlconn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", host, port, user, password, dbname)
-
 	// open database
-	database.DB, err = sql.Open("postgres", psqlconn)
+	database.DB, err = sql.Open("postgres", config.EnvPostgresConfig.GetDsn())
 	if err != nil {
 		panic(err)
 	}
@@ -42,7 +33,7 @@ func main() {
 
 	router := gin.Default()
 
-	var appContext = NewApplicationContext()
+	var appContext = NewApplicationContext(*config.EnvRabbitMqConfig)
 
 	defer appContext.Close()
 

@@ -4,16 +4,17 @@ import (
 	"database/sql"
 	"log"
 
+	"example.com/test_axxonsoft/v2/database"
 	"example.com/test_axxonsoft/v2/domain"
-	"github.com/gofrs/uuid"
+	"github.com/google/uuid"
 	sqlbuilder "github.com/huandu/go-sqlbuilder"
 )
 
 type HeaderRepository struct {
 }
 
-func (h HeaderRepository) Create(tx *sql.Tx, header *domain.Header) error {
-	uid, err := uuid.NewV7()
+func (h HeaderRepository) Create(header *domain.Header) error {
+	uid, err := uuid.NewUUID()
 	if err != nil {
 		log.Println("an error occurred while generating uuid : ", err.Error())
 		return err
@@ -25,7 +26,7 @@ func (h HeaderRepository) Create(tx *sql.Tx, header *domain.Header) error {
 		Values(header.Id, *header.RequestTaskId, header.Name, header.Value)
 
 	query, args := sb.Build()
-	_, err = tx.Exec(query, args...)
+	_, err = database.DB.Exec(query, args...)
 	if err != nil {
 		log.Println("an error occurred while executing insert statement : ", err.Error())
 		return err

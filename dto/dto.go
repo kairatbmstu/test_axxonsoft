@@ -2,7 +2,7 @@ package dto
 
 import (
 	"example.com/test_axxonsoft/v2/domain"
-	"github.com/gofrs/uuid"
+	"github.com/google/uuid"
 )
 
 type TaskDTO struct {
@@ -30,4 +30,16 @@ type TaskIdDTO struct {
 type ErrorDTO struct {
 	HasErrors bool
 	Errors    []string
+}
+
+type TaskStatusDTO struct {
+	Id              uuid.UUID         `json:"id"`
+	Method          string            `json:"method" binding:"required"`
+	Url             string            `json:"url" binding:"required"`
+	HttpStatusCode  int               `json:"httpStatusCode"`
+	TaskStatus      domain.TaskStatus `json:"taskStatus"`
+	ResponseLength  int               `json:"responseLength"`
+	RequestHeaders  map[string]string `json:"requestHeaders"`
+	RequestBody     string            `json:"requestBody"`
+	ResponseHeaders map[string]string `json:"responseHeaders"`
 }

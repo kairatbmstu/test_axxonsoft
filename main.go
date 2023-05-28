@@ -12,41 +12,19 @@ import (
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 )
 
-const (
-	host     = "localhost"
-	port     = 5432
-	user     = "test_axxonsoft"
-	password = "123456"
-	dbname   = "test_axxonsoft"
-)
-
 func main() {
-
-	var postgresConfig = config.PostgresConfig{
-		Host:     "localhost",
-		Port:     5432,
-		Username: "test_axxonsoft",
-		Password: "123456",
-		Database: "test_axxonsoft",
-	}
-
-	var rabbitConfig = config.RabbitMqConfig{
-		Host:     "localhost",
-		Port:     15672,
-		Username: "guest",
-		Password: "guest",
-	}
+	config.InitEnvConfigs()
 
 	m, err := migrate.New(
 		"file://migrations",
-		postgresConfig.GetUrl())
+		config.EnvPostgresConfig.GetUrl())
 	if err != nil {
 		log.Fatal(err)
 	}
 	m.Up()
 
 	// open database
-	database.DB, err = sql.Open("postgres", postgresConfig.GetDsn())
+	database.DB, err = sql.Open("postgres", config.EnvPostgresConfig.GetDsn())
 	if err != nil {
 		panic(err)
 	}
@@ -55,7 +33,7 @@ func main() {
 
 	router := gin.Default()
 
-	var appContext = NewApplicationContext(rabbitConfig)
+	var appContext = NewApplicationContext(*config.EnvRabbitMqConfig)
 
 	defer appContext.Close()
 

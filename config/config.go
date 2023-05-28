@@ -1,24 +1,29 @@
 package config
 
-import "fmt"
+import (
+	"fmt"
+	"log"
+
+	"github.com/spf13/viper"
+)
 
 type RabbitMqConfig struct {
-	Host     string
-	Port     int
-	Username string
-	Password string
+	Host     string `mapstructure:"RABBIT_HOST"`
+	Port     string `mapstructure:"RABBIT_PORT"`
+	Username string `mapstructure:"RABBIT_USERNAME"`
+	Password string `mapstructure:"RABBIT_PASSWORD"`
 }
 
-func (r RabbitMqConfig) getUrl() string {
-	return fmt.Sprintf("amqp://%s:%s@%s:%d/", r.Username, r.Password, r.Host, r.Port)
+func (r RabbitMqConfig) GetUrl() string {
+	return fmt.Sprintf("amqp://%s:%s@%s:%s/", r.Username, r.Password, r.Host, r.Port)
 }
 
 type PostgresConfig struct {
-	Host     string
-	Port     int
-	Username string
-	Password string
-	Database string
+	Host     string `mapstructure:"PG_HOST"`
+	Port     string `mapstructure:"PG_PORT"`
+	Username string `mapstructure:"PG_USERNAME"`
+	Password string `mapstructure:"PG_PASSWORD"`
+	Database string `mapstructure:"PG_DATABASE"`
 }
 
 func (p PostgresConfig) GetUrl() string {
@@ -26,5 +31,41 @@ func (p PostgresConfig) GetUrl() string {
 }
 
 func (p PostgresConfig) GetDsn() string {
-	return fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", p.Host, p.Port, p.Username, p.Password, p.Database)
+	return fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable", p.Host, p.Port, p.Username, p.Password, p.Database)
+}
+
+var EnvPostgresConfig *PostgresConfig
+var EnvRabbitMqConfig *RabbitMqConfig
+
+func InitEnvConfigs() {
+	EnvPostgresConfig = loadEnvVariablesForDB()
+	EnvRabbitMqConfig = loadEnvVariablesForRabbit()
+}
+
+func loadEnvVariablesForDB() (config *PostgresConfig) {
+	viper.AddConfigPath(".")
+	viper.SetConfigName("app")
+	viper.SetConfigType("env")
+	if err := viper.ReadInConfig(); err != nil {
+		log.Fatal("Error reading env file", err)
+	}
+
+	if err := viper.Unmarshal(&config); err != nil {
+		log.Fatal(err)
+	}
+	return
+}
+
+func loadEnvVariablesForRabbit() (config *RabbitMqConfig) {
+	viper.AddConfigPath(".")
+	viper.SetConfigName("app")
+	viper.SetConfigType("env")
+	if err := viper.ReadInConfig(); err != nil {
+		log.Fatal("Error reading env file", err)
+	}
+
+	if err := viper.Unmarshal(&config); err != nil {
+		log.Fatal(err)
+	}
+	return
 }

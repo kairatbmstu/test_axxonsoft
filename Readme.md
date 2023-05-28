@@ -15,3 +15,26 @@ After this command you will be in console of postgres, where you should perform 
 ```
 
 3. After that run the project the migration scripts will be performed automatically on schema
+
+4. Example of request: 
+
+```
+POST /task HTTP/1.1
+Host: localhost:8080
+Content-Type: application/json
+Content-Length: 232
+
+{
+    "method":"GET",
+    "url":"https://tengrinews.kz/world_news/premer-ministr-italii-djordja-meloni-otmenila-vizit-v-astanu-499621/",
+    "requestHeaders": {
+        "Authorization":"123123",
+        "X-Token":"123123123"
+    }
+}
+```
+
+```
+GET /task/50cdbf4e-8177-4bdb-9605-2c8e992eac1a HTTP/1.1
+Host: localhost:8080
+```

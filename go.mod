@@ -5,10 +5,12 @@ go 1.17
 require github.com/gin-gonic/gin v1.8.2
 
 require (
+	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/magiconair/properties v1.8.7 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
+	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/spf13/afero v1.9.3 // indirect
 	github.com/spf13/cast v1.5.0 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
@@ -59,5 +61,6 @@ require (
 	github.com/huandu/xstrings v1.3.2 // indirect
 	github.com/rabbitmq/amqp091-go v1.7.0 // indirect
 	github.com/spf13/viper v1.15.0
+	github.com/stretchr/testify v1.8.3
 	github.com/wagslane/go-rabbitmq v0.12.3
 )

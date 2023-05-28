@@ -31,13 +31,20 @@ sends the task to a queue using the TaskService, changes the task status to
  "in_process" using the TaskService, and finally returns the task ID in the response body.
 */
 func (t *TaskController) PostTask(c *gin.Context) {
-	var taskDto = new(dto.TaskDTO)
-	if err := c.ShouldBindJSON(&taskDto); err != nil {
+	var createTaskDTO = new(dto.CreateTaskDTO)
+	if err := c.ShouldBindJSON(&createTaskDTO); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error":        "bad_request",
 			"errorMessage": err.Error(),
 		})
 		return
+	}
+
+	var taskDto = &dto.TaskDTO{
+		Method:         createTaskDTO.Method,
+		Url:            createTaskDTO.Url,
+		RequestBody:    createTaskDTO.RequestBody,
+		RequestHeaders: createTaskDTO.RequestHeaders,
 	}
 
 	var error = t.TaskValidator.validate(taskDto)

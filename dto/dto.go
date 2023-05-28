@@ -29,6 +29,14 @@ type TaskDTO struct {
 	ResponseBody    string            `json:"responseBody"`
 }
 
+type CreateTaskDTO struct {
+	Method         string            `json:"method" binding:"required"`
+	Url            string            `json:"url" binding:"required"`
+	HttpStatusCode int               `json:"httpStatusCode"`
+	RequestHeaders map[string]string `json:"headers"`
+	RequestBody    string            `json:"body"`
+}
+
 /*
 The HeaderDTO struct represents a data transfer object for a header.
 It includes attributes such as the header name (Name) and the header value (Value).

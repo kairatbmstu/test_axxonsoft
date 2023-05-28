@@ -21,11 +21,22 @@ const (
 					 response_body=$7 WHERE id = $8`
 )
 
+/*
+The TaskRepository type represents a repository for managing task entities in the database.
+*/
 type TaskRepository struct {
 }
 
-// Gets existing task entity from DB by id
-// if not found returns nil
+/**
+The GetById method retrieves an existing task entity from the database by its ID. If the task is not found, it returns nil.
+
+Parameters
+tx: A transaction object for executing the database query.
+id: The ID of the task entity to retrieve.
+Returns
+*domain.Task: The retrieved task entity.
+error: An error object if an error occurred during the retrieval process.
+*/
 func (t TaskRepository) GetById(tx *sql.Tx, id uuid.UUID) (*domain.Task, error) {
 	sb := sqlbuilder.PostgreSQL.NewSelectBuilder()
 
@@ -57,8 +68,16 @@ func (t TaskRepository) GetById(tx *sql.Tx, id uuid.UUID) (*domain.Task, error) 
 	return task, nil
 }
 
-// Gets existing task status from DB by id
-// if not found returns nil
+/**
+The GetTaskStatusById method retrieves the task status of an existing task entity from the database by its ID. If the task is not found, it returns nil.
+
+Parameters
+tx: A transaction object for executing the database query.
+id: The ID of the task entity to retrieve the status.
+Returns
+*domain.Task: The retrieved task entity with only the task status field populated.
+error: An error object if an error occurred during the retrieval process.
+*/
 func (t TaskRepository) GetTaskStatusById(tx *sql.Tx, id uuid.UUID) (*domain.Task, error) {
 	sb := sqlbuilder.PostgreSQL.NewSelectBuilder()
 
@@ -90,8 +109,14 @@ func (t TaskRepository) GetTaskStatusById(tx *sql.Tx, id uuid.UUID) (*domain.Tas
 	return task, nil
 }
 
-// Creates new task entity
-// returns new create task entity , with unique id
+/*
+The Create method creates a new task entity in the database.
+
+Parameters
+task: The task entity to create.
+Returns
+error: An error object if an error occurred during the creation process.
+*/
 func (t TaskRepository) Create(task *domain.Task) error {
 	uid := uuid.New()
 
@@ -116,8 +141,14 @@ func (t TaskRepository) Create(task *domain.Task) error {
 	return nil
 }
 
-// Updates task entity
-// returns Updated task entity
+/*
+The Update method updates an existing task entity in the database.
+
+Parameters
+task: The task entity to update.
+Returns
+error: An error object if an error occurred during the update process.
+*/
 func (t TaskRepository) Update(task *domain.Task) error {
 	log.Println("Update task : ", task.Id.String())
 	for i := range task.ResponseHeaders {
@@ -145,7 +176,15 @@ func (t TaskRepository) Update(task *domain.Task) error {
 	return nil
 }
 
-// Change task status
+/*
+The ChangeTaskStatus method changes the status of a task entity in the database.
+
+Parameters
+taskId: The ID of the task entity to update the status.
+taskStatus: The new task status value.
+Returns
+error: An error object if an error occurred during the status change process.
+*/
 func (t TaskRepository) ChangeTaskStatus(taskId uuid.UUID, taskStatus domain.TaskStatus) error {
 	log.Println("changeTaskStatus :  ", taskId.String())
 	sb := sqlbuilder.PostgreSQL.NewUpdateBuilder()
@@ -162,9 +201,17 @@ func (t TaskRepository) ChangeTaskStatus(taskId uuid.UUID, taskStatus domain.Tas
 	return nil
 }
 
-// Gets all tasks from DB with pagination
-// page represents number of page in DB, starts from 0
-// size represents size of the page fetched from DB
+/*
+The FindAll method retrieves all tasks from the database with pagination.
+
+Parameters
+tx: A transaction object for executing the database query.
+page: The number of the page to retrieve (starting from 0).
+size: The size of the page (number of tasks per page).
+Returns
+*[]domain.Task: A pointer to a slice containing the retrieved task entities.
+error: An error object if an error occurred during the retrieval process.
+*/
 func (t TaskRepository) FindAll(tx *sql.Tx, page, size int) (*[]domain.Task, error) {
 	sb := sqlbuilder.PostgreSQL.NewSelectBuilder()
 
@@ -196,7 +243,15 @@ func (t TaskRepository) FindAll(tx *sql.Tx, page, size int) (*[]domain.Task, err
 	return &result, nil
 }
 
-// deletes task entity  in DB by task
+/*
+The DeleteById method deletes a task entity from the database by its ID.
+
+Parameters
+tx: A transaction object for executing the database query.
+id: The ID of the task entity to delete.
+Returns
+error: An error object if an error occurred during the deletion process.
+*/
 func (t TaskRepository) DeleteById(tx *sql.Tx, id string) error {
 	sb := sqlbuilder.PostgreSQL.NewDeleteBuilder()
 	sb.DeleteFrom("task").Where(sb.Equal("id", id))

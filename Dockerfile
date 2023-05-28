@@ -1,5 +1,5 @@
 # Start with a base GoLang image
-FROM golang:1.16
+FROM golang:1.18
 
 # Set the working directory inside the container
 WORKDIR /app
@@ -8,7 +8,7 @@ WORKDIR /app
 COPY go.mod go.sum ./
 
 # Download the dependencies
-RUN go mod download
+#RUN go mod download
 
 # Copy the rest of the application source code
 COPY . .

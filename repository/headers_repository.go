@@ -10,9 +10,17 @@ import (
 	sqlbuilder "github.com/huandu/go-sqlbuilder"
 )
 
+/*
+The HeaderRepository struct represents a repository for managing headers in the database.
+*/
 type HeaderRepository struct {
 }
 
+/*
+The Create function is used to create a new header in the database.
+It takes a pointer to a domain.Header object as a parameter.
+It returns an error if any error occurs during the execution.
+*/
 func (h HeaderRepository) Create(header *domain.Header) error {
 	uid, err := uuid.NewUUID()
 	if err != nil {
@@ -34,6 +42,11 @@ func (h HeaderRepository) Create(header *domain.Header) error {
 	return nil
 }
 
+/*
+The Update function is used to update an existing header in the database within a transaction.
+It takes a transaction (*sql.Tx) and a pointer to a domain.Header object as parameters.
+It returns an error if any error occurs during the execution.
+*/
 func (h HeaderRepository) Update(tx *sql.Tx, header *domain.Header) error {
 
 	sb := sqlbuilder.PostgreSQL.NewUpdateBuilder()
@@ -53,6 +66,11 @@ func (h HeaderRepository) Update(tx *sql.Tx, header *domain.Header) error {
 	return nil
 }
 
+/*
+The GetRequestHeaders function retrieves request headers associated with a specific task ID from the database within a transaction.
+It takes a transaction (*sql.Tx) and a UUID representing the task ID as parameters.
+It returns a pointer to a slice of domain.Header objects and an error if any error occurs during the execution.
+*/
 func (h HeaderRepository) GetRequestHeaders(tx *sql.Tx, taskId uuid.UUID) (*[]domain.Header, error) {
 	sb := sqlbuilder.PostgreSQL.NewSelectBuilder()
 	sb.Select("id", "request_headers_task_id", "response_headers_task_id", "header_name", "header_value").
@@ -85,6 +103,11 @@ func (h HeaderRepository) GetRequestHeaders(tx *sql.Tx, taskId uuid.UUID) (*[]do
 	return &result, nil
 }
 
+/*
+The GetResponseHeaders function retrieves response headers associated with a specific task ID from the database within a transaction.
+It takes a transaction (*sql.Tx) and a UUID representing the task ID as parameters.
+It returns a pointer to a slice of domain.Header objects and an error if any error occurs during the execution.
+*/
 func (h HeaderRepository) GetResponseHeaders(tx *sql.Tx, taskId uuid.UUID) (*[]domain.Header, error) {
 	sb := sqlbuilder.PostgreSQL.NewSelectBuilder()
 	sb.Select("id", "request_headers_task_id", "response_headers_task_id", "header_name", "header_value").

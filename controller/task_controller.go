@@ -14,11 +14,22 @@ import (
 	"github.com/google/uuid"
 )
 
+/*
+Package controller provides the implementation of the controller layer responsible
+for handling incoming HTTP requests and interacting with the domain and service layers.
+*/
 type TaskController struct {
 	TaskService   *service.TaskService
 	TaskValidator TaskValidator
 }
 
+/*
+The PostTask method is an HTTP handler function that handles the HTTP POST request
+for creating a new task. It retrieves the task data from the request body,
+validates it using the TaskValidator, creates the task using the TaskService,
+sends the task to a queue using the TaskService, changes the task status to
+ "in_process" using the TaskService, and finally returns the task ID in the response body.
+*/
 func (t *TaskController) PostTask(c *gin.Context) {
 	var taskDto = new(dto.TaskDTO)
 	if err := c.ShouldBindJSON(&taskDto); err != nil {
@@ -80,6 +91,12 @@ func (t *TaskController) PostTask(c *gin.Context) {
 	c.JSON(200, taskDtoId)
 }
 
+/*
+The GetTask method is an HTTP handler function that handles the HTTP GET request
+for retrieving the status of a specific task. It extracts the task ID from the request URL,
+retrieves the task status using the TaskService, creates a TaskStatusDTO object containing
+the relevant task status information, and returns it in the response body.
+*/
 func (t *TaskController) GetTask(c *gin.Context) {
 	var id = c.Params.ByName("id")
 	fmt.Println("id : " + id)
@@ -112,6 +129,13 @@ func (t *TaskController) GetTask(c *gin.Context) {
 	c.JSON(200, taskStatusDto)
 }
 
+/*
+The validate method is a helper function of the TaskValidator struct.
+It performs validation on the provided TaskDTO object and returns an
+ErrorDTO object containing any validation errors encountered.
+It checks for the presence of the Method field, validates the
+allowed HTTP methods, and checks the validity of the URL.
+*/
 type TaskValidator struct {
 }
 
@@ -145,6 +169,11 @@ func (t TaskValidator) validate(taskDto *dto.TaskDTO) *dto.ErrorDTO {
 	return errors
 }
 
+/*
+The IsUrl function is a helper function that checks whether a given string represents a valid URL.
+It uses the url.Parse function to parse the string and determines if the parsing was successful
+based on the presence of a scheme and a host.
+*/
 func IsUrl(str string) bool {
 	u, err := url.Parse(str)
 	return err == nil && u.Scheme != "" && u.Host != ""

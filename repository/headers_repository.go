@@ -17,11 +17,11 @@ type HeaderRepository struct {
 }
 
 /*
-The Create function is used to create a new header in the database.
+The CreateRequestHeader function is used to create a new header in the database.
 It takes a pointer to a domain.Header object as a parameter.
 It returns an error if any error occurs during the execution.
 */
-func (h HeaderRepository) Create(header *domain.Header) error {
+func (h HeaderRepository) CreateRequestHeader(header *domain.Header) error {
 	uid, err := uuid.NewUUID()
 	if err != nil {
 		log.Println("an error occurred while generating uuid : ", err.Error())
@@ -32,6 +32,27 @@ func (h HeaderRepository) Create(header *domain.Header) error {
 	sb := sqlbuilder.PostgreSQL.NewInsertBuilder()
 	sb.InsertInto("headers").Cols("id", "request_headers_task_id", "header_name", "header_value").
 		Values(header.Id, *header.RequestTaskId, header.Name, header.Value)
+
+	query, args := sb.Build()
+	_, err = database.DB.Exec(query, args...)
+	if err != nil {
+		log.Println("an error occurred while executing insert statement : ", err.Error())
+		return err
+	}
+	return nil
+}
+
+func (h HeaderRepository) CreateResponseHeader(header *domain.Header) error {
+	uid, err := uuid.NewUUID()
+	if err != nil {
+		log.Println("an error occurred while generating uuid : ", err.Error())
+		return err
+	}
+	header.Id = uid
+
+	sb := sqlbuilder.PostgreSQL.NewInsertBuilder()
+	sb.InsertInto("headers").Cols("id", "response_headers_task_id", "header_name", "header_value").
+		Values(header.Id, *header.ResponseTaskId, header.Name, header.Value)
 
 	query, args := sb.Build()
 	_, err = database.DB.Exec(query, args...)

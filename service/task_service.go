@@ -121,7 +121,7 @@ func (c *TaskService) Create(taskDTO *dto.TaskDTO) (*dto.TaskDTO, error) {
 	}
 
 	for _, header := range task.RequestHeaders {
-		err := c.HeaderRepository.Create(&header)
+		err := c.HeaderRepository.CreateRequestHeader(&header)
 		if err != nil {
 			log.Println("error while calling headerRepository.Create() method: ", err)
 			//	tx.Rollback()
@@ -197,7 +197,7 @@ func (c *TaskService) Update(taskDTO *dto.TaskDTO) (*dto.TaskDTO, error) {
 	}
 
 	for _, header := range taskEntity.ResponseHeaders {
-		err := c.HeaderRepository.Create(&header)
+		err := c.HeaderRepository.CreateResponseHeader(&header)
 		if err != nil {
 			log.Println("error calling taskRepository.getById() method: ", err)
 			// err := tx.Rollback()

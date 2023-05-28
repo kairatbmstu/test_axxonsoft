@@ -53,6 +53,7 @@ It takes an HttpRequest object as a parameter and returns an HttpResponse object
 */
 func (t *TaskClient) DoHttpRequest(HttpRequest *HttpRequest) (*HttpResponse, error) {
 	var httpResponse = HttpResponse{}
+	headers := map[string]string{}
 	request, err := http.NewRequest(HttpRequest.Method, HttpRequest.Url, nil)
 	if err != nil {
 		log.Println("client: could not create request: ", err)
@@ -74,6 +75,14 @@ func (t *TaskClient) DoHttpRequest(HttpRequest *HttpRequest) (*HttpResponse, err
 	}
 	httpResponse.ResponseBody = string(responseBody)
 	httpResponse.ResponseLength = utf8.RuneCountInString(httpResponse.ResponseBody)
+	keys := make([]string, 0, len(response.Header))
+	for k := range response.Header {
+		keys = append(keys, k)
+	}
+	for _, key := range keys {
+		headers[key] = response.Header.Get(key)
+	}
+	httpResponse.ResponseHeaders = headers
 	//log.Println("httpResponse: ", httpResponse)
 	return &httpResponse, nil
 }

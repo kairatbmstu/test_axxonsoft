@@ -142,20 +142,6 @@ func (c *TaskService) Create(taskDTO *dto.TaskDTO) (*dto.TaskDTO, error) {
 }
 
 func (c *TaskService) SendToQueue(taskDTO *dto.TaskDTO) (*dto.TaskDTO, error) {
-
-	// tx, err := database.DB.Begin()
-	// if err != nil {
-	// 	log.Println("error while opening transaction taskRepository.SendToQueue() method: ", err)
-	// 	return nil, err
-	// }
-	// save and change task status to in_process
-	// err = tx.Commit()
-	// if err != nil {
-	// 	log.Println("error while commiting transaction in taskRepository.SendToQueue() method : ", err)
-	// 	tx.Rollback()
-	// 	return nil, err
-	// }
-
 	// send taskDto to Queue
 	c.RabbitContext.SendTask(taskDTO)
 	return taskDTO, nil
